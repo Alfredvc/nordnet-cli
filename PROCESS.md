@@ -6,7 +6,7 @@ Custom pipeline. Supersedes cli-creator default 17-step pipeline because:
 - No OpenAPI spec — types must be hand-derived from docs
 - Real trading + banking API — write ops are destructive
 - Two-crate workspace (`nordnet-api` lib + `nordnet-cli` bin)
-- **Fully offline pipeline.** No agent in this pipeline ever calls the Nordnet API. All inputs come from the documentation HTML. All tests run against in-process mocks. The user is responsible for any real-API verification after a release is produced.
+- **No Nordnet API calls.** No agent in this pipeline ever calls the Nordnet API (live trading/banking endpoints). General network access (rustup, crates.io, apt, package downloads, doc fetches for non-Nordnet libraries) is allowed and expected. All Nordnet inputs come from the saved documentation HTML. All Nordnet tests run against in-process wiremock. The user is responsible for any real-Nordnet-API verification after a release is produced.
 
 ## Priority order (binding)
 
@@ -18,7 +18,7 @@ Custom pipeline. Supersedes cli-creator default 17-step pipeline because:
 
 ## What "correctness" means here
 
-We cannot verify "first-try works on real API" because no agent in this pipeline is allowed to call the API. We instead deliver the strongest offline-achievable guarantee:
+We cannot verify "first-try works on real Nordnet API" because no agent in this pipeline is allowed to call Nordnet. (General network for tooling is fine.) We instead deliver the strongest Nordnet-offline-achievable guarantee:
 
 - **Type definition matches doc** — every struct field comes from the parameter/schema table; every enum variant from the documented value set.
 - **Cross-source consistency within docs** — the parameter table, the response schema table, and the example body for one endpoint must agree. Disagreement = doc bug, flagged in notes, conservative pick chosen + recorded.
@@ -117,7 +117,7 @@ Builds everything every later phase depends on. Locks down APIs other agents wil
     - `extract-docs --html docs-source/nordnet-api-v2.html` regenerates `docs-extract/<group>/*.md` and `fixtures/<group>/*.json` from the saved HTML.
     - `consistency-check` runs cross-source + cross-endpoint checks (Phase 2C and 3X driver).
 11. `CONTRACTS.md` — locked contracts for every later subagent. See template below.
-12. `.claude/settings.local.json` allowlist permitting `cargo *`, `git *` on this branch, **no network access**, no `curl`, no `wget`.
+12. `.claude/settings.local.json` allowlist permitting `cargo *`, `git *`, and general network tooling (curl/wget for non-Nordnet hosts, rustup, apt). The only network rule: **no calls to Nordnet API hosts** (`*.nordnet.*`, `api.test.nordnet.*`, etc.). Reviewer enforces.
 13. Pre-commit hook: `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`.
 
 **Phase 0 gate:**
@@ -282,7 +282,7 @@ DO NOT READ:
 - The full HTML docs.
 - Other groups' models or resources files.
 
-DO NOT CALL ANY EXTERNAL SERVICE. You have no network. Do not curl, wget, or fetch anything. All inputs are on local disk.
+DO NOT CALL THE NORDNET API. Live Nordnet endpoints (`*.nordnet.*`) are off-limits to every agent in this pipeline. General network use (cargo build pulling crates.io, rustup, apt, fetching non-Nordnet docs) is fine. All Nordnet inputs are on local disk under `docs-extract/` and `fixtures/`.
 
 WRITE ONLY THESE FILES:
 - crates/nordnet-api/src/models/<GROUP>.rs
@@ -346,7 +346,7 @@ CHECKLIST:
 9. Mod files: implementer did NOT hand-edit any mod.rs. Re-run `cargo xtask gen-mods` and verify `git diff` on mod files is empty.
 10. File scope: implementer touched only owned files. `git diff --name-only` against base must match the allowed list exactly.
 11. Commit hygiene: no commits made yet.
-12. No external calls: implementer's notes show no curl/wget/network attempt. The crate has no network call in test code (search for `http://` / `https://` literals outside of test mock URLs).
+12. No Nordnet API calls: implementer's notes and code show no attempt to hit `*.nordnet.*` hosts. The crate has no Nordnet hostname in test code (search for `nordnet` host literals; mock URLs like `http://localhost:<port>` and `http://127.0.0.1:<port>` are fine).
 
 If any check fails:
 {
@@ -442,7 +442,7 @@ Phase 4 subagents for `orders_read` and `orders_write` each define their own `Cm
 
 Wave plan: 5 waves of ~3 groups, max ~6 subagents at once.
 
-**Phase 4 gate:** `cargo run -- <group> <op> --help` works for every op. Wiremock tests at this level optional but encouraged. No external calls.
+**Phase 4 gate:** `cargo run -- <group> <op> --help` works for every op. Wiremock tests at this level optional but encouraged. No calls to Nordnet hosts.
 
 ---
 
@@ -456,7 +456,7 @@ The merge step. Conflict-free by design — every implementer wrote in its own f
 2. `cargo fmt --check` workspace.
 3. `cargo clippy --workspace --all-targets -- -D warnings`.
 4. `cargo test --workspace`.
-5. Wiremock end-to-end smoke driven by xtask (no network): for every op, spin up wiremock with the op's fixture as response, run the binary subcommand against `http://localhost:<port>`, assert exit 0 + stdout JSON deserializes back into the lib type.
+5. Wiremock end-to-end smoke driven by xtask (no Nordnet calls): for every op, spin up wiremock with the op's fixture as response, run the binary subcommand against `http://localhost:<port>`, assert exit 0 + stdout JSON deserializes back into the lib type.
 6. One git commit per group, in dependency-friendly order: foundation → models → resources → CLI. Each commit triggers pre-commit hook (full gate). Sequential commits, no parallel-write races.
 7. Final commit: `chore: regenerate mod files + finalize workspace`.
 
@@ -481,7 +481,7 @@ The merge step. Conflict-free by design — every implementer wrote in its own f
 | Cargo.toml conflicts | Workspace `Cargo.toml` only lists `crates/*` (glob). Per-crate `Cargo.toml` for `nordnet-api` and `nordnet-cli` written in Phase 0 with all deps subagents will need; locked thereafter. |
 | Parallel git commits race | Phase 5 serializes commits. Subagents do NOT commit. |
 | Subagent reads beyond its slice | Prompt template lists exact files to Read. Reviewer can flag if subagent's notes show wider reads. |
-| Subagent reaches for the network | Allowlist denies network. Reviewer checks for `http(s)://` literals outside mock URLs. CONTRACTS.md states the rule. |
+| Subagent reaches for the Nordnet API | Allowlist denies Nordnet hosts (`*.nordnet.*`); other network is fine. Reviewer greps for `nordnet` host literals outside doc/fixture paths. CONTRACTS.md states the rule. |
 
 ## Correctness rules — universal
 
@@ -494,7 +494,7 @@ The merge step. Conflict-free by design — every implementer wrote in its own f
 7. **Cross-source consistency** is a gate, not a hope (Phase 2C).
 8. **Cross-endpoint consistency** is a gate, not a hope (Phase 3X).
 9. **Pre-commit hook is the floor.** fmt + clippy + test must pass on every commit.
-10. **No network in pipeline.** Hard-enforced via allowlist; documented in CONTRACTS.md; checked by reviewer.
+10. **No Nordnet API in pipeline.** Hard-enforced via allowlist (Nordnet hosts blocked); general network allowed for tooling. Documented in CONTRACTS.md; reviewer greps for Nordnet hostnames in code/tests.
 
 ## Definition of done
 
@@ -506,7 +506,7 @@ The merge step. Conflict-free by design — every implementer wrote in its own f
 - `cargo fmt --check` clean.
 - `cargo test --workspace` green.
 - Single binary `nordnet` runs `nordnet --help` and prints subcommand tree covering every op.
-- README + AGENTS.md generated, both noting the offline-only verification scope.
+- README + AGENTS.md generated, both noting that verification is wiremock-only and the live Nordnet API was never contacted by this pipeline.
 
 Real-API verification is the user's responsibility, performed outside this pipeline.
 

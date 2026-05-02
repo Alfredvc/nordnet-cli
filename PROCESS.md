@@ -534,7 +534,7 @@ Real-API verification is the user's responsibility, performed outside this pipel
 | 3 wave 1 (root, countries, tick_sizes) | done | `e160d95`, `4c2a5d9`, `6b712c4` | 58 tests green; 5 ops |
 | 3 wave 2 (markets, main_search, news) | done | `ae7142f`, `9fab32b`, `427edf6` | 6 ops |
 | 3 wave 3 (login, tradables, instruments) | done | `26df040`+`01eaad0`, `d9b3a7f`, `e6dc8e8` | 16 ops; `put_empty` added for body-less PUT |
-| 3 wave 4 (accounts, orders, instrument_search) | not started | — | Remaining 3 groups, ~17 ops |
+| 3 wave 4 (accounts, instrument_search, orders) | done | `51611eb`, `746493d`, `6478a50`, `589498b` | 17 ops; foundation amended with `post_form`/`put_form` (item 9) and Decimal carve-out (item 10); 258 tests workspace-wide |
 | 3X Cross-endpoint consistency | not started | — | |
 | 4 CLI surface | not started | — | Must enable `orders-cli` feature; see §Locked decisions #8 |
 | 5 Workspace integration | not started | — | |

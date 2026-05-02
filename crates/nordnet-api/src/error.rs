@@ -64,6 +64,12 @@ pub enum Error {
     /// contain bytes that are not valid for an HTTP header).
     #[error("invalid header value: {0}")]
     InvalidHeader(String),
+
+    /// Form-urlencoded serialization failed (used by `Client::post_form`
+    /// and `Client::put_form` for endpoints whose Swagger 2.0 parameters
+    /// are marked `FormData`).
+    #[error("form-urlencoded serialization failed: {0}")]
+    EncodeForm(String),
 }
 
 impl Error {

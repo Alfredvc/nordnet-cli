@@ -17,7 +17,7 @@ use nordnet_api::auth::{
 };
 use nordnet_api::{Client, Error};
 use serde::{Deserialize, Serialize};
-use wiremock::matchers::{body_json, header, method, path};
+use wiremock::matchers::{body_json, body_string, header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -222,4 +222,76 @@ async fn login_flow_start_sign_verify_against_mock() {
         expires_in: login.expires_in,
     });
     assert!(auth_client.session().is_some());
+}
+
+/// Body sent by the `post_form` test below. Mirrors a Nordnet `FormData`
+/// payload — note that scalar fields are urlencoded by `serde_urlencoded`
+/// using `Display`, so `i64` becomes its decimal string and `&str` is
+/// percent-encoded as needed.
+#[derive(Debug, Serialize)]
+struct FormBody<'a> {
+    side: &'a str,
+    market_id: i64,
+    volume: i64,
+    reference: &'a str,
+}
+
+#[tokio::test]
+async fn post_form_sends_application_x_www_form_urlencoded() {
+    let server = MockServer::start().await;
+    // Catch-all so an unmatched request doesn't 404 — lets us read the
+    // actual recorded request when assertions fail.
+    Mock::given(method("POST"))
+        .and(path("/orders"))
+        .and(header("content-type", "application/x-www-form-urlencoded"))
+        .and(body_string(
+            "side=BUY&market_id=11&volume=10&reference=hello+world",
+        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(Echo { value: 1 }))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let client = Client::new(server.uri()).unwrap();
+    let got: Echo = client
+        .post_form(
+            "/orders",
+            &FormBody {
+                side: "BUY",
+                market_id: 11,
+                volume: 10,
+                reference: "hello world",
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(got, Echo { value: 1 });
+}
+
+#[tokio::test]
+async fn put_form_sends_application_x_www_form_urlencoded() {
+    let server = MockServer::start().await;
+    Mock::given(method("PUT"))
+        .and(path("/orders/42"))
+        .and(header("content-type", "application/x-www-form-urlencoded"))
+        .and(body_string("side=SELL&market_id=11&volume=5&reference=ok"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(Echo { value: 2 }))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let client = Client::new(server.uri()).unwrap();
+    let got: Echo = client
+        .put_form(
+            "/orders/42",
+            &FormBody {
+                side: "SELL",
+                market_id: 11,
+                volume: 5,
+                reference: "ok",
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(got, Echo { value: 2 });
 }

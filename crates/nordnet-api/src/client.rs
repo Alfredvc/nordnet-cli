@@ -86,7 +86,7 @@ impl Client {
         path: &str,
         body: &B,
     ) -> Result<T, Error> {
-        self.send(Method::POST, path, Some(body)).await
+        self.send(Method::POST, path, Some(Body::Json(body))).await
     }
 
     /// PUT a JSON body to `<base_url><path>` and parse the JSON response.
@@ -95,7 +95,34 @@ impl Client {
         path: &str,
         body: &B,
     ) -> Result<T, Error> {
-        self.send(Method::PUT, path, Some(body)).await
+        self.send(Method::PUT, path, Some(Body::Json(body))).await
+    }
+
+    /// POST a body to `<base_url><path>` encoded as
+    /// `application/x-www-form-urlencoded`, and parse the JSON response.
+    ///
+    /// Required for endpoints whose Swagger 2.0 parameter table marks every
+    /// body parameter as `FormData` (e.g. `POST /accounts/{accid}/orders`).
+    /// JSON bodies are silently rejected by these endpoints.
+    pub async fn post_form<T: DeserializeOwned, B: Serialize>(
+        &self,
+        path: &str,
+        body: &B,
+    ) -> Result<T, Error> {
+        self.send(Method::POST, path, Some(Body::Form(body))).await
+    }
+
+    /// PUT a body to `<base_url><path>` encoded as
+    /// `application/x-www-form-urlencoded`, and parse the JSON response.
+    ///
+    /// Required for endpoints whose Swagger 2.0 parameter table marks every
+    /// body parameter as `FormData` (e.g. `PUT /accounts/{accid}/orders/{order_id}`).
+    pub async fn put_form<T: DeserializeOwned, B: Serialize>(
+        &self,
+        path: &str,
+        body: &B,
+    ) -> Result<T, Error> {
+        self.send(Method::PUT, path, Some(Body::Form(body))).await
     }
 
     /// PUT `<base_url><path>` with no request body. The wire request omits
@@ -135,7 +162,7 @@ impl Client {
         &self,
         method: Method,
         path: &str,
-        body: Option<&B>,
+        body: Option<Body<'_, B>>,
     ) -> Result<T, Error> {
         let url = self.url(path);
         let headers = self.auth_headers()?;
@@ -172,13 +199,41 @@ impl Client {
         method: Method,
         url: &str,
         headers: HeaderMap,
-        body: Option<&B>,
+        body: Option<Body<'_, B>>,
     ) -> Result<Response, Error> {
         let mut req = self.http.request(method, url).headers(headers);
-        if let Some(b) = body {
-            req = req.header(CONTENT_TYPE, "application/json").json(b);
+        match body {
+            Some(Body::Json(b)) => {
+                req = req.header(CONTENT_TYPE, "application/json").json(b);
+            }
+            Some(Body::Form(b)) => {
+                // Encode via serde_urlencoded directly (rather than
+                // `RequestBuilder::form`, which is gated on a reqwest
+                // feature we don't enable). Wire format is identical.
+                let encoded =
+                    serde_urlencoded::to_string(b).map_err(|e| Error::EncodeForm(e.to_string()))?;
+                req = req
+                    .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+                    .body(encoded);
+            }
+            None => {}
         }
         req.send().await.map_err(Error::Transport)
+    }
+}
+
+/// Internal body wrapper used to thread the encoding choice from the public
+/// helper (`post`, `put`, `post_form`, `put_form`) down to `execute_once`.
+/// Kept private — callers only see the typed helpers.
+enum Body<'a, B: Serialize> {
+    Json(&'a B),
+    Form(&'a B),
+}
+
+impl<B: Serialize> Copy for Body<'_, B> {}
+impl<B: Serialize> Clone for Body<'_, B> {
+    fn clone(&self) -> Self {
+        *self
     }
 }
 

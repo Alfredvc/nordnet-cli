@@ -1,0 +1,95 @@
+{
+  "results": [
+    {
+      "call_option": {
+        "derivative_info": {
+          "contract_multiplier": 100,
+          "expire_date": 1735000000000,
+          "start_date": 1600000000000
+        },
+        "exchange_info": {
+          "exchange_country": "SE"
+        },
+        "instrument_info": {
+          "instrument_id": 500001,
+          "name": "ERIC4C100",
+          "symbol": "ERIC4C100",
+          "isin": "SE0000999444",
+          "currency": "SEK",
+          "instrument_type": "OPT",
+          "instrument_group_type": "OPTION",
+          "is_tradable": true,
+          "issuer_id": 1,
+          "issuer_name": "Nordnet",
+          "price_unit": "SEK"
+        },
+        "market_info": {
+          "identifier": "XSTO",
+          "market_id": 11,
+          "market_sub_id": 1,
+          "tick_size_id": 1
+        },
+        "option_info": {
+          "exercise_type": "EUROPEAN",
+          "risk_free_interest": 0.025,
+          "strike_price": 100.0,
+          "underlying_instrument_id": 16099583,
+          "underlying_name": "Ericsson B"
+        },
+        "price_info": {
+          "ask": { "price": 5.5, "decimals": 2 },
+          "bid": { "price": 5.4, "decimals": 2 },
+          "last": { "price": 5.45, "decimals": 2 },
+          "realtime": true,
+          "tick_timestamp": 1700000000000
+        }
+      },
+      "put_option": {
+        "derivative_info": {
+          "contract_multiplier": 100,
+          "expire_date": 1735000000000,
+          "start_date": 1600000000000
+        },
+        "exchange_info": {
+          "exchange_country": "SE"
+        },
+        "instrument_info": {
+          "instrument_id": 500002,
+          "name": "ERIC4P100",
+          "symbol": "ERIC4P100",
+          "isin": "SE0000999445",
+          "currency": "SEK",
+          "instrument_type": "OPT",
+          "instrument_group_type": "OPTION",
+          "is_tradable": true,
+          "issuer_id": 1,
+          "issuer_name": "Nordnet",
+          "price_unit": "SEK"
+        },
+        "market_info": {
+          "identifier": "XSTO",
+          "market_id": 11,
+          "market_sub_id": 1,
+          "tick_size_id": 1
+        },
+        "option_info": {
+          "exercise_type": "EUROPEAN",
+          "risk_free_interest": 0.025,
+          "strike_price": 100.0,
+          "underlying_instrument_id": 16099583,
+          "underlying_name": "Ericsson B"
+        },
+        "price_info": {
+          "ask": { "price": 4.0, "decimals": 2 },
+          "bid": { "price": 3.9, "decimals": 2 },
+          "last": { "price": 3.95, "decimals": 2 },
+          "realtime": true,
+          "tick_timestamp": 1700000000000
+        }
+      },
+      "strike_price": 100.0
+    }
+  ],
+  "rows": 1,
+  "total_hits": 1
+}

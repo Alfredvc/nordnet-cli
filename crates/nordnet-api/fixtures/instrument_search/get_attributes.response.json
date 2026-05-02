@@ -1,0 +1,30 @@
+{
+  "attributes": [
+    {
+      "id": "name",
+      "name": "Name",
+      "filterable": false,
+      "returnable": true,
+      "sortable": true
+    },
+    {
+      "id": "market_id",
+      "name": "Market",
+      "filterable": true,
+      "returnable": true,
+      "sortable": true,
+      "min": 0.0,
+      "max": 999.0,
+      "filter_details": {
+        "attribute": "market_id",
+        "parent_filters": [],
+        "requires_expand": false,
+        "values": [
+          { "id": "11", "name": "Nasdaq Stockholm", "count": 1500 },
+          { "id": "30", "name": "Nasdaq Helsinki", "count": 800 }
+        ]
+      }
+    }
+  ],
+  "attributes_count": 2
+}

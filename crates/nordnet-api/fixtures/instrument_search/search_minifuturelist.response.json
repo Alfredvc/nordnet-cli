@@ -1,0 +1,61 @@
+{
+  "results": [
+    {
+      "etp_info": {
+        "direction": "Long",
+        "first_trading_date": 1600000000000,
+        "market_view": "U",
+        "nordnet_markets": true,
+        "underlying_instrument_id": 16099583,
+        "underlying_name": "Ericsson B"
+      },
+      "exchange_info": {
+        "exchange_country": "SE"
+      },
+      "instrument_info": {
+        "instrument_id": 300001,
+        "name": "MINI L ERIC NORDNET",
+        "symbol": "MINI L ERIC",
+        "isin": "SE0000999222",
+        "currency": "SEK",
+        "instrument_type": "WNT",
+        "instrument_group_type": "MINIFUTURE",
+        "is_tradable": true,
+        "issuer_id": 1,
+        "issuer_name": "Nordnet Markets",
+        "price_unit": "SEK"
+      },
+      "ko_calc_info": {
+        "ko_calc_conversion_ratio": 1.0,
+        "ko_calc_underlying_currency": "SEK",
+        "ko_calc_underlying_identifier": "ERIC B",
+        "ko_calc_underlying_market_id": 11
+      },
+      "ko_info": {
+        "financial_level": 50.0,
+        "stop_loss": 55.0
+      },
+      "market_info": {
+        "identifier": "XSTO",
+        "market_id": 11,
+        "market_sub_id": 1,
+        "tick_size_id": 1
+      },
+      "price_info": {
+        "ask": { "price": 1.55, "decimals": 2 },
+        "bid": { "price": 1.54, "decimals": 2 },
+        "last": { "price": 1.545, "decimals": 3 },
+        "realtime": true,
+        "tick_timestamp": 1700000000000
+      },
+      "price_ko_info": {
+        "indicative_high_risk": false,
+        "indicative_leverage": 6.5,
+        "risk_buffer": 0.18
+      }
+    }
+  ],
+  "rows": 1,
+  "total_hits": 1,
+  "underlying_instrument_id": 16099583
+}

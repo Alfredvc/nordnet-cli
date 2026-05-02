@@ -1,0 +1,54 @@
+{
+  "results": [
+    {
+      "certificate_info": {
+        "static_high_risk": false,
+        "static_leverage": 5.0
+      },
+      "etp_info": {
+        "direction": "Long",
+        "first_trading_date": 1600000000000,
+        "market_view": "U",
+        "nordnet_markets": true,
+        "underlying_instrument_id": 16099583,
+        "underlying_name": "Ericsson B"
+      },
+      "exchange_info": {
+        "exchange_country": "SE"
+      },
+      "instrument_info": {
+        "instrument_id": 200001,
+        "name": "BULL ERIC X5 NORDNET",
+        "symbol": "BULL ERIC X5 NORDNET",
+        "isin": "SE0000999111",
+        "currency": "SEK",
+        "instrument_type": "WNT",
+        "instrument_group_type": "LEVERAGE",
+        "is_tradable": true,
+        "is_shortable": false,
+        "is_monthly_saveable": false,
+        "issuer_id": 1,
+        "issuer_name": "Nordnet Markets",
+        "price_unit": "SEK"
+      },
+      "market_info": {
+        "identifier": "XSTO",
+        "market_id": 11,
+        "market_sub_id": 1,
+        "tick_size_id": 1
+      },
+      "price_info": {
+        "ask": { "price": 12.5, "decimals": 2 },
+        "ask_volume": 100,
+        "bid": { "price": 12.4, "decimals": 2 },
+        "bid_volume": 200,
+        "last": { "price": 12.45, "decimals": 2 },
+        "realtime": true,
+        "tick_timestamp": 1700000000000
+      }
+    }
+  ],
+  "rows": 1,
+  "total_hits": 1,
+  "underlying_instrument_id": 16099583
+}

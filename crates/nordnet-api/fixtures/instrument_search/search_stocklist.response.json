@@ -1,0 +1,98 @@
+{
+  "results": [
+    {
+      "instrument_info": {
+        "instrument_id": 16099583,
+        "name": "Ericsson B",
+        "long_name": "Telefonaktiebolaget LM Ericsson ser. B",
+        "symbol": "ERIC B",
+        "isin": "SE0000108656",
+        "currency": "SEK",
+        "instrument_type": "ESH",
+        "instrument_group_type": "STOCK",
+        "instrument_type_hierarchy": "EQUITIES/STOCK",
+        "is_tradable": true,
+        "is_shortable": true,
+        "is_monthly_saveable": true,
+        "issuer_id": 1,
+        "issuer_name": "Ericsson",
+        "price_unit": "SEK",
+        "instrument_pawn_percentage": 80,
+        "clearing_place": "EMCF",
+        "display_name": "Ericsson B"
+      },
+      "exchange_info": {
+        "exchange_country": "SE"
+      },
+      "market_info": {
+        "identifier": "XSTO",
+        "market_id": 11,
+        "market_sub_id": 1,
+        "tick_size_id": 1
+      },
+      "price_info": {
+        "ask": { "price": 65.5, "decimals": 2 },
+        "ask_volume": 1000,
+        "bid": { "price": 65.4, "decimals": 2 },
+        "bid_volume": 1500,
+        "close": { "price": 65.0, "decimals": 2 },
+        "diff": { "diff": 0.4321, "decimals": 4 },
+        "diff_pct": 0.66,
+        "high": { "price": 65.7, "decimals": 2 },
+        "last": { "price": 65.4321, "decimals": 4 },
+        "low": { "price": 64.9, "decimals": 2 },
+        "open": { "price": 65.05, "decimals": 2 },
+        "realtime": true,
+        "spread": { "price": 0.1, "decimals": 2 },
+        "spread_pct": 0.15,
+        "tick_timestamp": 1700000000000,
+        "turnover": 123456789.5,
+        "turnover_volume": 1234567
+      },
+      "company_info": {
+        "dividend_amount": 2.5,
+        "dividend_currency": "SEK",
+        "dividend_date": 1700000000000,
+        "dividend_frequency": 1,
+        "dividend_bonus_frequency": 0,
+        "excluding_date": 1699000000000,
+        "general_meeting_date": 1701000000000,
+        "report_date": 1702000000000,
+        "report_description": "Annual report",
+        "report_type": "ANNUAL_REPORT"
+      },
+      "key_ratios_info": {
+        "dividend_per_share": 2.5,
+        "dividend_yield": 0.038,
+        "eps": 5.12,
+        "pb": 1.45,
+        "pe": 12.7,
+        "ps": 1.1
+      },
+      "historical_returns_info": {
+        "realtime": true,
+        "yield_1w": 0.5,
+        "yield_1m": 1.2,
+        "yield_3m": 4.7,
+        "yield_1y": 15.3,
+        "yield_3y": 30.1,
+        "yield_5y": 50.0,
+        "yield_10y": 100.0,
+        "yield_ytd": 8.7
+      },
+      "statistical_info": {
+        "number_of_owners": 50000,
+        "statistics_timestamp": 1700000000000
+      }
+    },
+    {
+      "instrument_info": {
+        "instrument_id": 101,
+        "name": "Volvo B",
+        "symbol": "VOLV B"
+      }
+    }
+  ],
+  "rows": 2,
+  "total_hits": 2
+}

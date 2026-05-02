@@ -1,0 +1,25 @@
+[
+  {
+    "tick_size_id": 1,
+    "ticks": [
+      {
+        "decimals": 2,
+        "from_price": 0.00,
+        "tick": 0.01,
+        "to_price": 1.00
+      },
+      {
+        "decimals": 2,
+        "from_price": 1.00,
+        "tick": 0.05,
+        "to_price": 10.00
+      },
+      {
+        "decimals": 1,
+        "from_price": 10.00,
+        "tick": 0.10,
+        "to_price": 100.00
+      }
+    ]
+  }
+]

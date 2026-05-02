@@ -96,16 +96,75 @@ pub fn save(session: &StoredSession) -> Result<PathBuf, SessionError> {
 }
 
 /// Write the session to an explicit path. Creates parent directories as
-/// needed. On Unix, sets file mode to `0600`.
+/// needed. On Unix, the file is created with mode `0600` *before* any
+/// secret bytes are written, then atomically renamed over the destination
+/// — there is no window during which another local user can read a
+/// world-readable copy of the session key.
 pub fn save_to(path: &Path, session: &StoredSession) -> Result<(), SessionError> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| SessionError::Io(parent.to_path_buf(), e))?;
     }
     let serialized = toml::to_string(session)
         .map_err(|e| SessionError::Encode(path.to_path_buf(), e.to_string()))?;
-    std::fs::write(path, serialized).map_err(|e| SessionError::Io(path.to_path_buf(), e))?;
-    set_owner_only_perms(path)?;
-    Ok(())
+    write_atomic_owner_only(path, serialized.as_bytes())
+}
+
+/// Write `bytes` to `dest` such that, on Unix, no intermediate state on
+/// disk is readable by anyone other than the owner: a sibling tempfile is
+/// created with mode `0600` via `OpenOptions::mode`, the bytes are
+/// written and `fsync`'d, then the tempfile is `rename`'d over `dest`
+/// (atomic on POSIX). On non-Unix the call falls back to `std::fs::write`
+/// — perm hardening on those platforms is the OS's responsibility.
+#[cfg(unix)]
+fn write_atomic_owner_only(dest: &Path, bytes: &[u8]) -> Result<(), SessionError> {
+    use std::io::Write;
+    use std::os::unix::fs::OpenOptionsExt;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let parent = dest
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| Path::new(".").to_path_buf());
+    let stem = dest
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("session");
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let tmp = parent.join(format!(
+        ".{stem}.tmp.{pid}.{tid:?}.{nanos}",
+        pid = std::process::id(),
+        tid = std::thread::current().id(),
+    ));
+
+    let result = (|| -> Result<(), SessionError> {
+        let mut f = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(&tmp)
+            .map_err(|e| SessionError::Io(tmp.clone(), e))?;
+        f.write_all(bytes)
+            .map_err(|e| SessionError::Io(tmp.clone(), e))?;
+        f.sync_all().map_err(|e| SessionError::Io(tmp.clone(), e))?;
+        std::fs::rename(&tmp, dest).map_err(|e| SessionError::Io(dest.to_path_buf(), e))?;
+        Ok(())
+    })();
+
+    if result.is_err() {
+        // Best-effort cleanup; ignore the result because the original
+        // error is already what the caller needs to see.
+        let _ = std::fs::remove_file(&tmp);
+    }
+    result
+}
+
+#[cfg(not(unix))]
+fn write_atomic_owner_only(dest: &Path, bytes: &[u8]) -> Result<(), SessionError> {
+    std::fs::write(dest, bytes).map_err(|e| SessionError::Io(dest.to_path_buf(), e))
 }
 
 /// Delete the session file at the default path. Returns `Ok(false)` if
@@ -123,21 +182,6 @@ pub fn delete_at(path: &Path) -> Result<bool, SessionError> {
     }
     std::fs::remove_file(path).map_err(|e| SessionError::Io(path.to_path_buf(), e))?;
     Ok(true)
-}
-
-#[cfg(unix)]
-fn set_owner_only_perms(path: &Path) -> Result<(), SessionError> {
-    use std::os::unix::fs::PermissionsExt;
-    let perms = std::fs::Permissions::from_mode(0o600);
-    std::fs::set_permissions(path, perms).map_err(|e| SessionError::Io(path.to_path_buf(), e))
-}
-
-#[cfg(not(unix))]
-fn set_owner_only_perms(_path: &Path) -> Result<(), SessionError> {
-    // Non-Unix platforms: rely on the OS file ACL. Windows would use
-    // `icacls` or the `winapi` ACL APIs; not wired today because the
-    // primary target is Unix-like agent runtimes.
-    Ok(())
 }
 
 #[derive(Debug, Error)]
@@ -226,6 +270,63 @@ mod tests {
         save_to(&path, &session).unwrap();
         let mode = std::fs::metadata(&path).unwrap().permissions().mode();
         assert_eq!(mode & 0o777, 0o600, "expected mode 0600, got {mode:o}");
+    }
+
+    /// Pre-existing world-readable file gets atomically replaced with a
+    /// new 0600 file. Proves the rename pattern brings the new file's mode
+    /// rather than mutating the old file's perms in place (which would
+    /// leave a race window).
+    #[cfg(unix)]
+    #[test]
+    fn save_overwrites_loose_perms_atomically() {
+        use std::os::unix::fs::PermissionsExt;
+        let path = tmp_path("session_perms_atomic.toml");
+        // Pre-create with world-readable perms.
+        std::fs::write(&path, "stale").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+        assert_eq!(
+            std::fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+            0o644
+        );
+
+        let session = StoredSession {
+            session_key: "sk".into(),
+            expires_in: 1,
+            acquired_at: OffsetDateTime::from_unix_timestamp(1_700_000_000).unwrap(),
+        };
+        save_to(&path, &session).unwrap();
+
+        let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(
+            mode, 0o600,
+            "expected mode 0600 after overwrite, got {mode:o}"
+        );
+        // Verify the new content actually landed (not the "stale" string).
+        let loaded = load_from(&path).unwrap().unwrap();
+        assert_eq!(loaded.session_key, "sk");
+    }
+
+    /// No `.tmp.*` sidecar file should remain in the destination directory
+    /// after a successful save — proves the rename completed and cleanup
+    /// is unnecessary on the happy path.
+    #[cfg(unix)]
+    #[test]
+    fn save_leaves_no_tempfile_behind() {
+        let path = tmp_path("session_no_tempfile.toml");
+        let dir = path.parent().unwrap().to_path_buf();
+        let session = StoredSession {
+            session_key: "sk".into(),
+            expires_in: 1,
+            acquired_at: OffsetDateTime::from_unix_timestamp(1_700_000_000).unwrap(),
+        };
+        save_to(&path, &session).unwrap();
+        let leftovers: Vec<_> = std::fs::read_dir(&dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name())
+            .filter(|n| n.to_string_lossy().contains(".tmp."))
+            .collect();
+        assert!(leftovers.is_empty(), "tempfiles left behind: {leftovers:?}");
     }
 
     #[test]

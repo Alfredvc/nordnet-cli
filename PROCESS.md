@@ -555,5 +555,5 @@ Real-API verification is the user's responsibility, performed outside this pipel
 | 3 wave 3 (login, tradables, instruments) | done | `26df040`+`01eaad0`, `d9b3a7f`, `e6dc8e8` | 16 ops; `put_empty` added for body-less PUT |
 | 3 wave 4 (accounts, instrument_search, orders) | done | `51611eb`, `746493d`, `6478a50`, `589498b` | 17 ops; foundation amended with `post_form`/`put_form` (item 9) and Decimal carve-out (item 10); 258 tests workspace-wide |
 | 3X Cross-endpoint consistency | done | `73dc33c` | 264 tests green (+6); 4 foundation additions to `shared.rs`/`ids.rs` (item 11); reconciliation map in `notes/3X-type-consistency.md` |
-| 4 CLI surface | done | `6de6ae5`, `f35c116`, `92bb151`, `a955e5c`, `<wave 4 commit>` | 13 CLI groups, 270 tests green (+6 session); foundation amendments items 12, 13, 14 |
+| 4 CLI surface | done | `6de6ae5`, `f35c116`, `92bb151`, `a955e5c`, `3775fe1` | 13 CLI groups, 270 tests green (+6 session); foundation amendments items 12, 13, 14 |
 | 5 Workspace integration | not started | — | |

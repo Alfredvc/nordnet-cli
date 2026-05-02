@@ -20,7 +20,7 @@ tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread", "time"] }
 
 # Serde stack
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
+serde_json = { version = "1.0.149", features = ["arbitrary_precision"] }
 
 # CLI
 clap = { version = "4.6.1", features = ["derive"] }
@@ -36,7 +36,7 @@ sha2 = "0.10.9"
 base64 = "0.22.1"
 
 # Domain types
-rust_decimal = { version = "1.41.0", features = ["serde-with-str"] }
+rust_decimal = { version = "1.41.0", features = ["serde-arbitrary-precision"] }
 time = { version = "0.3.47", features = ["serde", "serde-well-known", "macros"] }
 
 # Config

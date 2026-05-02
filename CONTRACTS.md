@@ -20,6 +20,7 @@ No subagent edits files outside its own group.
 - Numeric IDs: use newtype from `crate::ids::*`. Never `i64` / `String` raw.
 - Timestamps: `time::OffsetDateTime` with `time::serde::iso8601`.
 - Money: `crate::models::shared::Money { amount: rust_decimal::Decimal, currency: Currency }`. Never `f64`.
+- **Decimal JSON form: bare numbers via `arbitrary_precision`.** Every `Decimal` field MUST carry `#[serde(with = "rust_decimal::serde::arbitrary_precision")]`. Workspace `Cargo.toml` enables `serde_json/arbitrary_precision` and `rust_decimal/serde-arbitrary-precision` features to support this. Fixtures use bare JSON numbers (`"tick": 0.01`, not `"tick": "0.01"`). Without the `with =` attr, rust_decimal's default serde emits/expects strings, breaking canonical byte-equivalent roundtrip. For tuple newtype wrappers (e.g. `Amount(pub Decimal)`), put the attr on the field: `pub struct Amount(#[serde(with = "rust_decimal::serde::arbitrary_precision")] pub Decimal);`.
 - Enums: full string set from docs, `#[serde(rename_all = "...")]` matching documented casing. Unknown variant = parse error, by design.
 - Doc disagreement (parameter table vs example body vs response schema): pick the most-restrictive interpretation, file in `docs-extract/<group>/<op>.md` under "Doc inconsistencies", surface to reviewer.
 
@@ -37,7 +38,7 @@ impl Client {
 
 Two test layers per group:
 
-1. **Fixture roundtrip.** For every fixture, `serde_json::from_str::<T>(fixture)` must succeed AND re-serialize must match canonical form.
+1. **Fixture roundtrip.** For every fixture, `serde_json::from_str::<T>(fixture)` must succeed AND re-serializing the parsed value must equal the original fixture's canonical form. Implement as: parse fixture into `T`, parse fixture into `serde_json::Value` (call this `canonical`), serialize `T` and parse the result into `serde_json::Value`, assert equal to `canonical`. This catches asymmetries like Decimal-as-string fixtures vs default Decimal-as-number serialization.
 2. **Wiremock integration.** For every op, mock the endpoint with the fixture as response body, call the resource fn, assert structure matches.
 
 There is **no** "live" test layer. Pipeline never calls the real API.

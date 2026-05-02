@@ -47,6 +47,7 @@ impl From<&str> for Currency {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Money {
+    #[serde(with = "rust_decimal::serde::arbitrary_precision")]
     pub amount: Decimal,
     pub currency: Currency,
 }
@@ -57,7 +58,7 @@ pub struct Money {
 /// "money is decimal, never float" invariant is visible at the type level.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(transparent)]
-pub struct Amount(pub Decimal);
+pub struct Amount(#[serde(with = "rust_decimal::serde::arbitrary_precision")] pub Decimal);
 
 /// Common timestamp type for fields that the docs mark as ISO 8601. Use
 /// the [`time::serde::iso8601`] adapter at the field level:

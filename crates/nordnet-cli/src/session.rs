@@ -37,7 +37,13 @@ use time::OffsetDateTime;
 pub struct StoredSession {
     /// `session_key` returned by `POST /login/verify`.
     pub session_key: String,
-    /// Server-reported lifetime in seconds (`expires_in` field).
+    /// Server-reported lifetime in seconds, captured from the
+    /// `expires_in` field of the original `POST /login/verify` response.
+    /// `PUT /login` (refresh) does not return a new `expires_in`, so this
+    /// value is treated as the canonical session lifetime; refreshes
+    /// reset [`StoredSession::acquired_at`] but leave this field
+    /// unchanged. See `cmd::auth::Cmd::Refresh` for the assumption this
+    /// rests on.
     pub expires_in: i64,
     /// Wall-clock UTC time when the session was acquired.
     /// Used by `nordnet auth status` to compute remaining time locally.

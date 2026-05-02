@@ -49,6 +49,16 @@ pub enum Cmd {
     /// Touch the current session (PUT /login) and refresh the local
     /// `acquired_at` timestamp so `auth status` reflects the renewed
     /// lifetime.
+    ///
+    /// Caveat: `PUT /login` returns `LoggedInStatus { logged_in: bool }`
+    /// only — the API does not send back a fresh `expires_in`. This
+    /// command therefore assumes the server resets the session timer to
+    /// the same `expires_in` that `POST /login/verify` originally
+    /// reported. If Nordnet ever changes the per-refresh lifetime, the
+    /// `seconds_remaining` shown by `auth status` will drift; actual
+    /// authenticated calls remain authoritative — they'll surface
+    /// `Error::Unauthorized` (HTTP 401) the moment the server-side
+    /// session lapses.
     Refresh,
     /// Print local session metadata (path, expiry, time remaining)
     /// without contacting the API.

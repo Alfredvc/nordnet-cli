@@ -72,6 +72,19 @@ enum Command {
         #[command(subcommand)]
         cmd: cmd::auth::Cmd,
     },
+    /// `nordnet accounts <op>` — accounts, ledgers, positions, returns, trades.
+    Accounts {
+        #[command(subcommand)]
+        cmd: cmd::accounts::Cmd,
+    },
+    /// `nordnet tradables <op>` — tradable info / trades / suitability.
+    Tradables {
+        #[command(subcommand)]
+        cmd: cmd::tradables::Cmd,
+    },
+    /// `nordnet search <query>` — top-level instrument search.
+    #[command(flatten)]
+    Search(cmd::main_search::Cmd),
 }
 
 #[tokio::main]
@@ -119,6 +132,18 @@ async fn main() -> anyhow::Result<()> {
             // a session if the call requires one.
             let client = build_unauth_client()?;
             cmd.run(&client, &fields).await?;
+        }
+        Command::Accounts { cmd } => {
+            let client = build_client(session_override.as_deref())?;
+            cmd.run(&client, &fields).await?;
+        }
+        Command::Tradables { cmd } => {
+            let client = build_client(session_override.as_deref())?;
+            cmd.run(&client, &fields).await?;
+        }
+        Command::Search(c) => {
+            let client = build_client(session_override.as_deref())?;
+            c.run(&client, &fields).await?;
         }
     }
 

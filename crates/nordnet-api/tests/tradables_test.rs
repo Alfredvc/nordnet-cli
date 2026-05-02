@@ -15,7 +15,7 @@
 
 use nordnet_api::ids::{MarketId, TradableId};
 use nordnet_api::models::tradables::{
-    CalendarDay, AllowedOrderType, PublicTrade, TradableEligibility, TradableInfo, TradableKey,
+    AllowedOrderType, CalendarDay, PublicTrade, TradableEligibility, TradableInfo, TradableKey,
     TradablePublicTrades,
 };
 use nordnet_api::{Client, Error};

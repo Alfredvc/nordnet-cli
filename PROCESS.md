@@ -558,3 +558,14 @@ Real-API verification is the user's responsibility, performed outside this pipel
 | 3X Cross-endpoint consistency | done | `73dc33c` | 264 tests green (+6); 4 foundation additions to `shared.rs`/`ids.rs` (item 11); reconciliation map in `notes/3X-type-consistency.md` |
 | 4 CLI surface | done | `6de6ae5`, `f35c116`, `92bb151`, `a955e5c`, `3775fe1` | 13 CLI groups, 270 tests green (+6 session); foundation amendments items 12, 13, 14 |
 | 5 Workspace integration | done | (doc-only commit) | gen-mods no-op; fmt clean; clippy -D warnings clean; `cargo test --workspace` 270 green. Step 5 (per-op CLI wiremock smoke) dropped — see §"Phase 5". Pipeline complete. |
+
+## Post-Phase-5 hardening
+
+Targeted fixes after pipeline closed. Each entry is a standalone commit, not part of a phase.
+
+| Change | Commit | Notes |
+|---|---|---|
+| `client`: drop auto-retry on 429/503 | `039a04c` | Caller decides backoff; client returns `Error::RateLimited`/`Error::ServiceUnavailable` directly. |
+| `cli`: atomic 0600 session save | `58d807f` | Closes secret-leak race when `~/.nordnet/session.toml` is rewritten under concurrent reads. |
+| `auth`: refresh-without-`expires_in` assumption | `962df91` | Doc-only — records that refresh response may omit `expires_in`; we keep the previous TTL. |
+| `tradables::OrderType` → `AllowedOrderType` | (this commit) | Removes name collision with `orders::OrderType` (closed request enum). The tradables type is the per-instrument `(name, type)` capability pair; the orders type is the wire enum. WIP rename was carried in via merge `1d05ac3`; this commit completes it (fmt fix on import order in `tests/tradables_test.rs`) and documents the change. |

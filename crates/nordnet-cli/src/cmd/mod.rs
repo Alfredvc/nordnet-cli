@@ -1,6 +1,6 @@
 // GENERATED — do not hand-edit. Regenerate with `cargo xtask gen-mods`.
+pub mod auth;
 pub mod countries;
-pub mod login;
 pub mod markets;
 pub mod news;
 pub mod orders;

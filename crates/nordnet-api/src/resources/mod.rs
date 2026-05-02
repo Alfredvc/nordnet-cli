@@ -6,3 +6,4 @@ pub mod markets;
 pub mod news;
 pub mod root;
 pub mod tick_sizes;
+pub mod tradables;

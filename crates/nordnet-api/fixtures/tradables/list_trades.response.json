@@ -1,0 +1,27 @@
+[
+  {
+    "identifier": "101",
+    "market_id": 11,
+    "trades": [
+      {
+        "broker_buying": "AVA",
+        "broker_selling": "NON",
+        "market_id": 11,
+        "price": 269.7234,
+        "tick_timestamp": 1714568400000,
+        "trade_id": "T-0001",
+        "trade_timestamp": 1714568400000,
+        "trade_type": "REGULAR",
+        "volume": 100
+      },
+      {
+        "market_id": 11,
+        "price": 270.1500,
+        "tick_timestamp": 1714568460000,
+        "trade_id": "T-0002",
+        "trade_timestamp": 1714568460000,
+        "volume": 50
+      }
+    ]
+  }
+]

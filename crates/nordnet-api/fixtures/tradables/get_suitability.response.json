@@ -1,0 +1,4 @@
+[
+  {"eligible": true, "identifier": "101", "market_id": 11},
+  {"eligible": false, "identifier": "202", "market_id": 11}
+]

@@ -7,3 +7,4 @@ pub mod news;
 pub mod root;
 pub mod shared;
 pub mod tick_sizes;
+pub mod tradables;

@@ -1,0 +1,16 @@
+[
+  {
+    "calendar": [
+      {"close": 1714665600000, "date": "2024-05-02", "open": 1714636800000},
+      {"close": 1714752000000, "date": "2024-05-03", "open": 1714723200000}
+    ],
+    "iceberg": true,
+    "identifier": "101",
+    "market_id": 11,
+    "order_types": [
+      {"name": "Limit", "type": "LIMIT"},
+      {"name": "Market", "type": "MARKET"},
+      {"name": "Stop loss", "type": "STOP_LOSS"}
+    ]
+  }
+]

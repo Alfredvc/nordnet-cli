@@ -4,35 +4,29 @@
 //!   - Base URL composition (`{base}/{path}` with leading-slash tolerated).
 //!   - `Authorization: Basic <session_key:session_key>` injection when a
 //!     [`Session`] is attached.
-//!   - Documented retry logic:
-//!     - **429 Too Many Requests** -> sleep 10s, retry once.
-//!     - **503 Service Unavailable** -> honor `Retry-After` header (seconds)
-//!       up to a small cap, retry once.
 //!   - Single response-parsing path so every method routes identical
 //!     status-code handling.
+//!
+//! Non-2xx responses (including 429 Too Many Requests and 503 Service
+//! Unavailable) surface to the caller as the matching [`Error`] variant.
+//! Retry policy is deliberately a caller concern — the library does not
+//! sleep, retry, or hide latency. POST/PUT operations on `/orders` are
+//! non-idempotent; a hidden retry could double-place an order if a
+//! response is lost in flight. Callers that want backoff should wrap
+//! these methods explicitly.
 //!
 //! No method here calls a Nordnet host directly — callers supply the base
 //! URL (production, test, or a `wiremock::MockServer`).
 
 use reqwest::{
-    header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE, RETRY_AFTER},
-    Method, Response, StatusCode,
+    header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
+    Method, Response,
 };
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use std::time::Duration;
 
 use crate::auth::Session;
 use crate::error::Error;
-
-/// How long to wait before retrying after a 429, per the docs ("Please
-/// wait for 10 seconds before retrying.").
-const RATE_LIMIT_BACKOFF: Duration = Duration::from_secs(10);
-
-/// Hard cap on `Retry-After` (seconds) we will honor for 503. Anything
-/// larger is returned to the caller as `ServiceUnavailable` so they can
-/// decide whether to keep waiting.
-const MAX_RETRY_AFTER_SECS: u64 = 60;
 
 /// Typed HTTP client for the Nordnet API. Cheap to clone — wraps a
 /// `reqwest::Client` and a base URL + optional session.
@@ -166,31 +160,7 @@ impl Client {
     ) -> Result<T, Error> {
         let url = self.url(path);
         let headers = self.auth_headers()?;
-
-        let response = self
-            .execute_once(method.clone(), &url, headers.clone(), body)
-            .await?;
-
-        // Documented retry semantics. Both retries are bounded to one
-        // attempt; a still-failing response after the retry returns the
-        // mapped Error variant to the caller.
-        let response = match response.status() {
-            StatusCode::TOO_MANY_REQUESTS => {
-                tokio::time::sleep(RATE_LIMIT_BACKOFF).await;
-                self.execute_once(method.clone(), &url, headers.clone(), body)
-                    .await?
-            }
-            StatusCode::SERVICE_UNAVAILABLE => {
-                let wait = parse_retry_after(response.headers().get(RETRY_AFTER))
-                    .unwrap_or(RATE_LIMIT_BACKOFF.as_secs())
-                    .min(MAX_RETRY_AFTER_SECS);
-                tokio::time::sleep(Duration::from_secs(wait)).await;
-                self.execute_once(method.clone(), &url, headers.clone(), body)
-                    .await?
-            }
-            _ => response,
-        };
-
+        let response = self.execute_once(method, &url, headers, body).await?;
         parse_response::<T>(response).await
     }
 
@@ -230,13 +200,6 @@ enum Body<'a, B: Serialize> {
     Form(&'a B),
 }
 
-impl<B: Serialize> Copy for Body<'_, B> {}
-impl<B: Serialize> Clone for Body<'_, B> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
 /// Single response-parsing path used by every method on [`Client`].
 async fn parse_response<T: DeserializeOwned>(response: Response) -> Result<T, Error> {
     let status = response.status();
@@ -247,12 +210,6 @@ async fn parse_response<T: DeserializeOwned>(response: Response) -> Result<T, Er
     } else {
         Err(Error::from_status(status.as_u16(), body))
     }
-}
-
-fn parse_retry_after(value: Option<&HeaderValue>) -> Option<u64> {
-    value
-        .and_then(|v| v.to_str().ok())
-        .and_then(|s| s.trim().parse::<u64>().ok())
 }
 
 #[cfg(test)]
@@ -270,15 +227,6 @@ mod tests {
     fn url_strips_trailing_slash_on_base() {
         let c = Client::new("http://example.com/api/2/").unwrap();
         assert_eq!(c.url("/x"), "http://example.com/api/2/x");
-    }
-
-    #[test]
-    fn parse_retry_after_seconds() {
-        let mut h = HeaderMap::new();
-        h.insert(RETRY_AFTER, HeaderValue::from_static("7"));
-        assert_eq!(parse_retry_after(h.get(RETRY_AFTER)), Some(7));
-        h.insert(RETRY_AFTER, HeaderValue::from_static("not a number"));
-        assert_eq!(parse_retry_after(h.get(RETRY_AFTER)), None);
     }
 
     #[test]

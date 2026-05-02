@@ -4,9 +4,10 @@
 //! - Successful GET deserializes a typed response.
 //! - 400 maps to [`Error::BadRequest`] with the body preserved.
 //! - 401 maps to [`Error::Unauthorized`].
-//! - 429 triggers a single retry. To keep wall-clock time reasonable, we
-//!   pause Tokio time so the documented 10s wait is virtual.
-//! - 503 honors the `Retry-After` header and retries once.
+//! - 429 surfaces as [`Error::TooManyRequests`] without any client-side
+//!   retry (caller decides backoff policy).
+//! - 503 surfaces as [`Error::ServiceUnavailable`] without any
+//!   client-side retry (non-idempotent POSTs would be unsafe to retry).
 //! - The `Authorization` header carries `Basic <base64(key:key)>`.
 //! - The full `POST /login/start` -> `POST /login/verify` flow works
 //!   end-to-end against wiremock and produces a usable [`Session`].
@@ -71,34 +72,27 @@ async fn http_401_maps_to_unauthorized() {
     assert!(matches!(err, Error::Unauthorized { .. }));
 }
 
-#[tokio::test(start_paused = true)]
-async fn http_429_retries_once_then_succeeds() {
+#[tokio::test]
+async fn http_429_surfaces_without_retry() {
     let server = MockServer::start().await;
-
-    // First call: 429. Second call: 200.
     Mock::given(method("GET"))
         .and(path("/x"))
         .respond_with(ResponseTemplate::new(429).set_body_string("slow down"))
-        .up_to_n_times(1)
-        .expect(1)
-        .mount(&server)
-        .await;
-    Mock::given(method("GET"))
-        .and(path("/x"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(Echo { value: 7 }))
         .expect(1)
         .mount(&server)
         .await;
 
     let client = Client::new(server.uri()).unwrap();
-    let got: Echo = client.get("/x").await.unwrap();
-    assert_eq!(got, Echo { value: 7 });
+    let err = client.get::<Echo>("/x").await.unwrap_err();
+    match err {
+        Error::TooManyRequests { body } => assert_eq!(body, "slow down"),
+        other => panic!("expected TooManyRequests, got {other:?}"),
+    }
 }
 
-#[tokio::test(start_paused = true)]
-async fn http_503_honors_retry_after_then_succeeds() {
+#[tokio::test]
+async fn http_503_surfaces_without_retry() {
     let server = MockServer::start().await;
-
     Mock::given(method("GET"))
         .and(path("/x"))
         .respond_with(
@@ -106,20 +100,36 @@ async fn http_503_honors_retry_after_then_succeeds() {
                 .insert_header("Retry-After", "1")
                 .set_body_string("down"),
         )
-        .up_to_n_times(1)
-        .expect(1)
-        .mount(&server)
-        .await;
-    Mock::given(method("GET"))
-        .and(path("/x"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(Echo { value: 11 }))
         .expect(1)
         .mount(&server)
         .await;
 
     let client = Client::new(server.uri()).unwrap();
-    let got: Echo = client.get("/x").await.unwrap();
-    assert_eq!(got, Echo { value: 11 });
+    let err = client.get::<Echo>("/x").await.unwrap_err();
+    match err {
+        Error::ServiceUnavailable { body } => assert_eq!(body, "down"),
+        other => panic!("expected ServiceUnavailable, got {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn http_503_on_post_does_not_retry() {
+    // Critical: a hidden retry on a non-idempotent POST could double-place
+    // an order. Assert exactly one request is sent.
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/x"))
+        .respond_with(ResponseTemplate::new(503).set_body_string("down"))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let client = Client::new(server.uri()).unwrap();
+    let err = client
+        .post::<Echo, _>("/x", &Echo { value: 1 })
+        .await
+        .unwrap_err();
+    assert!(matches!(err, Error::ServiceUnavailable { .. }));
 }
 
 #[tokio::test]

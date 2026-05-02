@@ -1,0 +1,26 @@
+[
+  {
+    "instrument_id": 16099583,
+    "trades": [
+      {
+        "broker_buying": "AVA",
+        "broker_selling": "NON",
+        "market_id": 11,
+        "price": 65.4321,
+        "tick_timestamp": 1714568400000,
+        "trade_id": "T-9001",
+        "trade_timestamp": 1714568400000,
+        "trade_type": "REGULAR",
+        "volume": 200
+      },
+      {
+        "market_id": 11,
+        "price": 65.5,
+        "tick_timestamp": 1714568500000,
+        "trade_id": "T-9002",
+        "trade_timestamp": 1714568500000,
+        "volume": 150
+      }
+    ]
+  }
+]

@@ -1,0 +1,31 @@
+[
+  {
+    "currency": "SEK",
+    "instrument_id": 50000001,
+    "instrument_group_type": "LEVERAGE",
+    "instrument_type": "WNT",
+    "isin_code": "SE0099000001",
+    "leverage_percentage": 5.0,
+    "market_view": "U",
+    "name": "BULL ERIC X5 NORDNET",
+    "symbol": "BULL ERIC X5 NORDNET",
+    "tradables": [
+      {
+        "display_order": 1,
+        "identifier": "L-101",
+        "lot_size": 1.0,
+        "market_id": 11,
+        "mic": "XSTO",
+        "price_unit": "SEK",
+        "tick_size_id": 1
+      }
+    ],
+    "underlyings": [
+      {
+        "instrument_id": 16099583,
+        "isin_code": "SE0000108656",
+        "symbol": "ERIC B"
+      }
+    ]
+  }
+]

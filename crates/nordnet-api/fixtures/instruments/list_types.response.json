@@ -1,0 +1,14 @@
+[
+  {
+    "instrument_type": "ESH",
+    "name": "Equity"
+  },
+  {
+    "instrument_type": "EFD",
+    "name": "Forward"
+  },
+  {
+    "instrument_type": "WNT",
+    "name": "Warrant"
+  }
+]

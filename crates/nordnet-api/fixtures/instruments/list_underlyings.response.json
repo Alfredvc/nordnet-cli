@@ -1,0 +1,18 @@
+[
+  {
+    "currency": "SEK",
+    "instrument_id": 16099583,
+    "instrument_type": "ESH",
+    "isin_code": "SE0000108656",
+    "name": "Ericsson B",
+    "symbol": "ERIC B"
+  },
+  {
+    "currency": "SEK",
+    "instrument_id": 101,
+    "instrument_type": "ESH",
+    "isin_code": "SE0000115446",
+    "name": "Volvo B",
+    "symbol": "VOLV B"
+  }
+]

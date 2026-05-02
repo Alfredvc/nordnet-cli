@@ -1,0 +1,10 @@
+[
+  {
+    "eligible": true,
+    "instrument_id": 16099583
+  },
+  {
+    "eligible": false,
+    "instrument_id": 101
+  }
+]

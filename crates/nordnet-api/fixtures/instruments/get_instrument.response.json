@@ -1,0 +1,69 @@
+[
+  {
+    "asset_class": "EQUITY",
+    "brochure_url": "https://www.nordnet.se/brochures/eric_b.pdf",
+    "currency": "SEK",
+    "dividend_policy": "ANNUAL",
+    "expiration_date": "2099-12-31",
+    "instrument_group_type": "STOCK",
+    "instrument_id": 16099583,
+    "instrument_type": "ESH",
+    "isin_code": "SE0000108656",
+    "key_information_documents": {
+      "url_for_combined": "https://www.nordnet.se/kid/eric_b_combined.pdf",
+      "url_for_long": "https://www.nordnet.se/kid/eric_b_long.pdf",
+      "url_for_short": "https://www.nordnet.se/kid/eric_b_short.pdf"
+    },
+    "leverage_percentage": 1.234567,
+    "margin_percentage": 25.5,
+    "market_view": "U",
+    "mifid2_category": 1,
+    "multiplier": 1.0,
+    "name": "Ericsson B",
+    "number_of_securities": 3267000000.0,
+    "pawn_percentage": 80.0,
+    "price_type": "monetary_amount",
+    "prospectus_url": "https://www.nordnet.se/prospectus/eric_b.pdf",
+    "sector": "TECH",
+    "sector_group": "TECHNOLOGY",
+    "sfdr_article": 8,
+    "strike_price": 100.5,
+    "symbol": "ERIC B",
+    "total_fee": 0.0025,
+    "tradables": [
+      {
+        "display_order": 1,
+        "identifier": "101",
+        "lot_size": 1.0,
+        "market_id": 11,
+        "mic": "XSTO",
+        "price_unit": "SEK",
+        "tick_size_id": 1
+      },
+      {
+        "display_order": 2,
+        "identifier": "102",
+        "lot_size": 100.0,
+        "market_id": 11,
+        "mic": "XSTO",
+        "price_unit": "SEK",
+        "tick_size_id": 2
+      }
+    ],
+    "underlyings": [
+      {
+        "instrument_id": 16099583,
+        "instrumment_id": 16099583,
+        "isin_code": "SE0000108656",
+        "symbol": "ERIC B"
+      }
+    ]
+  },
+  {
+    "currency": "SEK",
+    "instrument_id": 101,
+    "instrument_type": "ESH",
+    "name": "Volvo B",
+    "symbol": "VOLV B"
+  }
+]

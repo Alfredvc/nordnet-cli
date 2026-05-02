@@ -1,0 +1,18 @@
+{
+  "currencies": ["SEK", "EUR", "USD"],
+  "expiration_dates": ["2025-12-19", "2026-03-20"],
+  "instrument_group_types": ["LEVERAGE", "WARRANT"],
+  "instrument_types": ["WNT", "MIN"],
+  "issuers": [
+    {
+      "issuer_id": 1,
+      "name": "Nordnet Markets"
+    },
+    {
+      "issuer_id": 2,
+      "name": "BNP Paribas"
+    }
+  ],
+  "market_view": ["U", "D"],
+  "no_of_instruments": 1234
+}

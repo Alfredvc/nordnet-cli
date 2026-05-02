@@ -538,6 +538,8 @@ Real-API verification is the user's responsibility, performed outside this pipel
     - `crates/nordnet-cli/src/main.rs` gains a `build_client(session_override)` helper that resolves the session per the override order and attaches it to the `Client` for every non-`auth` command.
     - The wave-2 `crates/nordnet-cli/src/cmd/login.rs` is deleted; replaced by `crates/nordnet-cli/src/cmd/auth.rs`. Net surface effect: the user-facing `nordnet login` namespace from wave 2 (`start`, `verify`, `refresh`, `logout`) is removed in favor of the `nordnet auth` namespace.
 
+14. **Phase 4 amendment — `OrdersCmd` gains `Debug` + `#[allow(clippy::large_enum_variant)]`; `orders-cli` feature on by default (added during Phase 4 wave 4).** Wiring `cmd::orders::OrdersCmd` into the top-level `Command` enum (which derives `Debug`) required the locked dispatcher's enum to derive `Debug` too. Also, clippy's `large_enum_variant` lint fired because `OrdersCmd::Write` carries `orders_write::Cmd::Place(PlaceArgs)` whose 15 fields put the variant at ~240 bytes (vs `Read` ~16). Boxing `Write(Box<orders_write::Cmd>)` doesn't compose with clap's `#[command(flatten)]` derive plumbing, and the size only matters for runtime perf — the enum is constructed exactly once per CLI invocation, so an indirection would buy nothing. Lint allowed at the dispatcher with an inline comment explaining the rationale. The `orders-cli` feature flipped from `default = []` to `default = ["orders-cli"]` because both `orders_read.rs` and `orders_write.rs` now exist (wave 4 wave_4 implementers landed them together). The feature gate is retained because the dispatcher contract still requires a guard against the brief Phase 0 → Phase 4 window when only the dispatcher existed.
+
 ## Pipeline state log
 
 | Phase | Status | Commit | Notes |
@@ -553,5 +555,5 @@ Real-API verification is the user's responsibility, performed outside this pipel
 | 3 wave 3 (login, tradables, instruments) | done | `26df040`+`01eaad0`, `d9b3a7f`, `e6dc8e8` | 16 ops; `put_empty` added for body-less PUT |
 | 3 wave 4 (accounts, instrument_search, orders) | done | `51611eb`, `746493d`, `6478a50`, `589498b` | 17 ops; foundation amended with `post_form`/`put_form` (item 9) and Decimal carve-out (item 10); 258 tests workspace-wide |
 | 3X Cross-endpoint consistency | done | `73dc33c` | 264 tests green (+6); 4 foundation additions to `shared.rs`/`ids.rs` (item 11); reconciliation map in `notes/3X-type-consistency.md` |
-| 4 CLI surface | not started | — | Must enable `orders-cli` feature; see §Locked decisions #8 |
+| 4 CLI surface | done | `6de6ae5`, `f35c116`, `92bb151`, `a955e5c`, `<wave 4 commit>` | 13 CLI groups, 270 tests green (+6 session); foundation amendments items 12, 13, 14 |
 | 5 Workspace integration | not started | — | |

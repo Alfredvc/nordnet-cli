@@ -85,6 +85,23 @@ enum Command {
     /// `nordnet search <query>` — top-level instrument search.
     #[command(flatten)]
     Search(cmd::main_search::Cmd),
+    /// `nordnet instruments <op>` — instrument lookups + leverage queries.
+    Instruments {
+        #[command(subcommand)]
+        cmd: cmd::instruments::Cmd,
+    },
+    /// `nordnet instrument-search <op>` — attribute + entity-list searches.
+    #[command(name = "instrument-search")]
+    InstrumentSearch {
+        #[command(subcommand)]
+        cmd: cmd::instrument_search::Cmd,
+    },
+    /// `nordnet orders <op>` — list / place / modify / activate / cancel.
+    #[cfg(feature = "orders-cli")]
+    Orders {
+        #[command(subcommand)]
+        cmd: cmd::orders::OrdersCmd,
+    },
 }
 
 #[tokio::main]
@@ -144,6 +161,19 @@ async fn main() -> anyhow::Result<()> {
         Command::Search(c) => {
             let client = build_client(session_override.as_deref())?;
             c.run(&client, &fields).await?;
+        }
+        Command::Instruments { cmd } => {
+            let client = build_client(session_override.as_deref())?;
+            cmd.run(&client, &fields).await?;
+        }
+        Command::InstrumentSearch { cmd } => {
+            let client = build_client(session_override.as_deref())?;
+            cmd.run(&client, &fields).await?;
+        }
+        #[cfg(feature = "orders-cli")]
+        Command::Orders { cmd } => {
+            let client = build_client(session_override.as_deref())?;
+            cmd.run(&client, &fields).await?;
         }
     }
 

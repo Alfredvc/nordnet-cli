@@ -1185,6 +1185,7 @@ dependencies = [
  "clap",
  "dirs",
  "nordnet-api",
+ "rust_decimal",
  "serde",
  "serde_json",
  "thiserror",

@@ -525,9 +525,12 @@ Real-API verification is the user's responsibility, performed outside this pipel
 |---|---|---|---|
 | 0 Foundation | done | `ccbcd05` | 39 tests green; auth deviation logged in §Locked decisions #6 |
 | 1 Doc extraction | done | `1a50c7d` | 43 op extracts + INVENTORY.md; 5 orders ops (no `get`) |
+| 1.5 Definitions extraction | done | `0a25c3d` | 78 type definitions extracted from Swagger2Markup Definitions section; per-op files cross-link to types |
 | 2 Fixture assembly | dropped | — | HTML has no example bodies; deferred to Phase 3 implementers |
 | 2C Cross-source consistency | dropped | — | Degenerate without examples |
-| 3 Resource implementation | not started | — | Next dispatch |
+| Decimal serde fix | done | `6412c1b` | All Decimal fields use `#[serde(with = "rust_decimal::serde::arbitrary_precision")]`; bare-number JSON form |
+| 3 wave 1 (root, countries, tick_sizes) | done | `e160d95`, `4c2a5d9`, `6b712c4` | 58 tests green; 5 ops |
+| 3 wave 2-4 | not started | — | Remaining 9 groups: accounts, orders, instruments, instrument_search, tradables, markets, news, main_search, login |
 | 3X Cross-endpoint consistency | not started | — | |
 | 4 CLI surface | not started | — | Must enable `orders-cli` feature; see §Locked decisions #8 |
 | 5 Workspace integration | not started | — | |

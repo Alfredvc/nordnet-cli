@@ -2,7 +2,6 @@
 //!
 //! - `gen-mods` — regenerates every `mod.rs` from the filesystem.
 //! - `extract-docs --html <path>` — re-extract per-op docs + fixtures.
-//!   Stub in Phase 0; implemented by Phase 1.
 //! - `consistency-check` — cross-source + cross-endpoint checker.
 //!   Stub in Phase 0; implemented by Phase 2C / 3X.
 //!
@@ -12,6 +11,8 @@ use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use std::fs;
 use std::path::{Path, PathBuf};
+
+mod extract_docs;
 
 #[derive(Debug, Parser)]
 #[command(name = "xtask", version, about = "Nordnet CLI workspace tasks.")]
@@ -27,7 +28,6 @@ enum Cmd {
     GenMods,
 
     /// Re-extract per-operation docs + fixtures from the saved HTML.
-    /// Stub in Phase 0 — full implementation lands in Phase 1.
     ExtractDocs {
         /// Path to the saved Nordnet API reference HTML.
         #[arg(long)]
@@ -43,14 +43,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Cmd::GenMods => gen_mods(),
-        Cmd::ExtractDocs { html } => {
-            eprintln!(
-                "extract-docs is not yet implemented (Phase 0 stub). \
-                 Will read {} in Phase 1.",
-                html.display()
-            );
-            Ok(())
-        }
+        Cmd::ExtractDocs { html } => extract_docs::run(&html),
         Cmd::ConsistencyCheck => {
             eprintln!(
                 "consistency-check is not yet implemented (Phase 0 stub). \

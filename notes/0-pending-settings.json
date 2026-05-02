@@ -1,0 +1,40 @@
+{
+  "_comment": "Phase 0 intended .claude/settings.local.json. Apply if the in-place write was blocked by the bypass-immune permission prompt. Place at /Users/alfredvc/src/nordnet-cli/.claude/settings.local.json.",
+  "permissions": {
+    "allow": [
+      "Bash(cargo *)",
+      "Bash(git *)",
+      "Bash(rustup *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(rg *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "Bash(cat *)",
+      "Bash(chmod *)",
+      "Bash(find *)",
+      "WebFetch",
+      "WebSearch",
+      "Read",
+      "Edit",
+      "Write",
+      "Grep",
+      "Glob"
+    ],
+    "deny": [
+      "WebFetch(domain:nordnet.se)",
+      "WebFetch(domain:nordnet.no)",
+      "WebFetch(domain:nordnet.dk)",
+      "WebFetch(domain:nordnet.fi)",
+      "WebFetch(domain:public.nordnet.se)",
+      "WebFetch(domain:api.test.nordnet.se)",
+      "WebFetch(domain:api.test.nordnet.no)",
+      "WebFetch(domain:api.test.nordnet.dk)",
+      "WebFetch(domain:api.test.nordnet.fi)",
+      "Bash(curl *nordnet.*)",
+      "Bash(wget *nordnet.*)",
+      "Bash(curl *.nordnet.*)",
+      "Bash(wget *.nordnet.*)"
+    ]
+  }
+}

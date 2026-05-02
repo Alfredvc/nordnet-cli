@@ -1,0 +1,28 @@
+[package]
+name = "nordnet-cli"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Agent-friendly command-line interface for the Nordnet External API."
+
+[[bin]]
+name = "nordnet"
+path = "src/main.rs"
+
+[features]
+default = []
+# Enabled in Phase 4 once `orders_read` and `orders_write` modules exist.
+# See `crates/nordnet-cli/src/cmd/orders.rs` (foundation-locked dispatcher).
+orders-cli = []
+
+[dependencies]
+nordnet-api = { path = "../nordnet-api" }
+clap = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+toml = { workspace = true }
+dirs = { workspace = true }

@@ -55,28 +55,16 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 // ---------------------------------------------------------------------------
-// Local money shape
+// Money shape — see Phase 3X note below
 // ---------------------------------------------------------------------------
 
-/// Wire-shape `{currency, value}` for the `Amount` type as referenced from
-/// [`Order::price`].
-///
-/// `_definitions/Amount.md` documents the JSON object literally as
-/// `{ currency: string, value: number(double) }`. The shared
-/// [`crate::models::shared::Money`] type uses `{currency, amount}` (a
-/// different field name) and the shared
-/// [`crate::models::shared::Amount`] type is a transparent newtype over
-/// `Decimal` (no nested object). Neither matches the Order schema verbatim
-/// — declared here locally and flagged for Phase 3X reconciliation.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
-pub struct OrderAmount {
-    /// The amount currency.
-    pub currency: Currency,
-    /// The amount value. `Decimal` per CONTRACTS.md (never `f64`).
-    #[serde(with = "rust_decimal::serde::arbitrary_precision")]
-    pub value: Decimal,
-}
+/// Re-export of the shared `{currency, value}` amount type. Phase 3X
+/// promoted the local `OrderAmount` struct to
+/// [`crate::models::shared::AmountWithCurrency`] (the `accounts` group had
+/// an equivalent local type with the same field shape — see PROCESS.md
+/// "Locked decisions" item 11). The local spelling `OrderAmount` is kept
+/// as an alias for source compatibility.
+pub use crate::models::shared::AmountWithCurrency as OrderAmount;
 
 // ---------------------------------------------------------------------------
 // Response types

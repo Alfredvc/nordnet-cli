@@ -5,7 +5,7 @@
 //! 1. Fixture roundtrip — every fixture parses under `deny_unknown_fields`
 //!    and re-serializes to the same canonical JSON `Value`. Plus a Decimal
 //!    precision survival test on `Instrument::leverage_percentage`, an
-//!    `IssuerId` transparency test, and a roundtrip that verifies the
+//!    `IssuerId` (now in `crate::ids`) transparency test, and a roundtrip that verifies the
 //!    misspelled legacy `instrumment_id` field is preserved on the wire.
 //! 2. `deny_unknown_fields` rejection — covers `Instrument`,
 //!    `InstrumentType`, `InstrumentEligibility`, and `LeverageFilter`.
@@ -16,15 +16,16 @@
 //!    query string both when populated and when default.
 //!    `get_instrument` covers the 204 No Content -> empty Vec mapping.
 
-use nordnet_api::ids::{InstrumentId, MarketId, TickSizeId};
+use nordnet_api::ids::{InstrumentId, IssuerId, MarketId, TickSizeId, TradableId};
 use nordnet_api::models::instruments::{
-    Instrument, InstrumentEligibility, InstrumentPublicTrades, InstrumentType, IssuerId,
+    Instrument, InstrumentEligibility, InstrumentPublicTrades, InstrumentType,
     KeyInformationDocuments, LeverageFilter, Tradable, UnderlyingInfo,
 };
 use nordnet_api::resources::instruments::LeveragesQuery;
 use nordnet_api::{Client, Error};
 use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
+use time::macros::date;
 use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, Request, ResponseTemplate};
 
@@ -162,7 +163,7 @@ fn get_instrument_fixture_roundtrip() {
     assert_eq!(full.symbol, "ERIC B");
     assert_eq!(full.currency, "SEK");
     assert_eq!(full.asset_class.as_deref(), Some("EQUITY"));
-    assert_eq!(full.expiration_date.as_deref(), Some("2099-12-31"));
+    assert_eq!(full.expiration_date, Some(date!(2099 - 12 - 31)));
     assert_eq!(full.market_view.as_deref(), Some("U"));
     assert_eq!(full.mifid2_category, Some(1));
     assert_eq!(full.sfdr_article, Some(8));
@@ -413,7 +414,7 @@ fn key_information_documents_and_tradable_construct() {
     };
     let _t = Tradable {
         display_order: 1,
-        identifier: "101".to_owned(),
+        identifier: TradableId("101".to_owned()),
         lot_size: "1.0".parse::<Decimal>().unwrap(),
         market_id: MarketId(11),
         mic: "XSTO".to_owned(),

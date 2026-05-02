@@ -18,6 +18,7 @@ use nordnet_api::models::accounts::{
     Account, AccountInfo, AccountTransactionsToday, Amount, Ledger, LedgerInformation, Position,
     PositionInstrument, Reserved, TradableRef, Trade,
 };
+use nordnet_api::models::shared::Currency;
 use nordnet_api::resources::accounts::{
     AccountInfoQuery, ListAccountTradesQuery, ListAccountsQuery, ListPositionsQuery,
     ReturnsTodayQuery,
@@ -25,6 +26,7 @@ use nordnet_api::resources::accounts::{
 use nordnet_api::{Client, Error};
 use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
+use time::macros::date;
 use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, Request, ResponseTemplate};
 
@@ -111,7 +113,7 @@ fn get_account_info_fixture_roundtrip() {
     assert_eq!(full.accid, Some(AccountId(1)));
     assert_eq!(full.accno, 12345678);
     assert_eq!(full.account_currency, "SEK");
-    assert_eq!(full.account_sum.currency, "SEK");
+    assert_eq!(full.account_sum.currency, Currency::from("SEK"));
     assert_eq!(
         full.account_sum.value,
         "100000.50".parse::<Decimal>().unwrap()
@@ -120,7 +122,7 @@ fn get_account_info_fixture_roundtrip() {
         full.bonus_cash.as_ref().map(|a| a.value),
         Some("250.0".parse::<Decimal>().unwrap())
     );
-    assert_eq!(full.registration_date.as_deref(), Some("2018-04-15"));
+    assert_eq!(full.registration_date, Some(date!(2018 - 04 - 15)));
     assert_eq!(full.reserved.total.value, "0.0".parse::<Decimal>().unwrap());
 
     let minimal = &parsed[1];
@@ -176,12 +178,12 @@ fn get_returns_today_fixture_roundtrip() {
     let raw = get_returns_today_fixture();
     let parsed: Vec<AccountTransactionsToday> = serde_json::from_str(raw).unwrap();
     assert_eq!(parsed.len(), 2);
-    assert_eq!(parsed[0].transactions.currency, "SEK");
+    assert_eq!(parsed[0].transactions.currency, Currency::from("SEK"));
     assert_eq!(
         parsed[0].transactions.value,
         "2500.0".parse::<Decimal>().unwrap()
     );
-    assert_eq!(parsed[1].transactions.currency, "EUR");
+    assert_eq!(parsed[1].transactions.currency, Currency::from("EUR"));
     assert_eq!(
         parsed[1].transactions.value,
         "-100.50".parse::<Decimal>().unwrap()
@@ -201,7 +203,7 @@ fn list_account_trades_fixture_roundtrip() {
     assert_eq!(t0.accno, 12345678);
     assert_eq!(t0.counterparty.as_deref(), Some("AVA"));
     assert_eq!(t0.order_id, OrderId(555001));
-    assert_eq!(t0.price.currency, "SEK");
+    assert_eq!(t0.price.currency, Currency::from("SEK"));
     assert_eq!(t0.price.value, "100.50".parse::<Decimal>().unwrap());
     assert_eq!(t0.side, "BUY");
     assert_eq!(t0.tradable.identifier, TradableId("101".to_owned()));
@@ -230,7 +232,7 @@ fn trade_decimal_precision_survives_roundtrip() {
         counterparty: None,
         order_id: OrderId(2),
         price: Amount {
-            currency: "SEK".to_owned(),
+            currency: "SEK".into(),
             value: "100.123456789".parse::<Decimal>().unwrap(),
         },
         side: "BUY".to_owned(),
@@ -600,7 +602,7 @@ async fn list_ledgers_returns_entry() {
     let client = Client::new(server.uri()).unwrap();
     let result = client.list_ledgers(ACC).await.unwrap();
     assert_eq!(result.ledgers.len(), 2);
-    assert_eq!(result.total.currency, "SEK");
+    assert_eq!(result.total.currency, Currency::from("SEK"));
 }
 
 #[tokio::test]
@@ -719,7 +721,7 @@ async fn get_returns_today_returns_entries() {
         .await
         .unwrap();
     assert_eq!(result.len(), 2);
-    assert_eq!(result[0].transactions.currency, "SEK");
+    assert_eq!(result[0].transactions.currency, Currency::from("SEK"));
 }
 
 #[tokio::test]

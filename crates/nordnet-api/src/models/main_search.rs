@@ -16,55 +16,32 @@
 //! reconciliation (deduplication of e.g. `PriceWithDecimals` if other
 //! groups also use it) is deferred to Phase 3X.
 //!
-//! ## Doc notes (for Phase 3X reconciliation)
+//! ## Doc notes
 //!
 //! - `external_news_id` (in `MainSearchResponseRow`) is documented as
-//!   `integer(int64)`. There is no `NewsId` newtype yet under
-//!   `crate::ids`, and adding one would require touching foundation, so
-//!   the field is typed as plain `i64` here. Phase 3X may introduce a
-//!   `NewsId` newtype and migrate this field.
+//!   `integer(int64)`. There is no `NewsId` newtype under `crate::ids`,
+//!   so the field is typed as plain `i64` here. (`models::news` defines
+//!   a private `NewsId(i64)` newtype but it lives in the `news` group's
+//!   own model file. Promotion deferred — single use site.)
 //! - Several timestamp-shaped `integer(int64)` fields
 //!   (`published_date_time`, `joined_at`, `tick_timestamp`,
 //!   `first_trading_date`) follow Nordnet's UNIX-epoch-millis convention
 //!   per the docs but are kept as plain `i64` (no `Timestamp` newtype
 //!   exists for epoch-millis under `crate::models::shared`).
 //! - `number(double)` fields are typed as [`rust_decimal::Decimal`]
-//!   instead of `f64` per CONTRACTS.md "Never `f64`".
+//!   instead of `f64` per CONTRACTS.md "Never `f64`". The
+//!   `Option<Decimal>` adapter was promoted to
+//!   [`crate::models::shared::opt_arb_prec`] in Phase 3X (4-group dup).
+//! - `EtpInfo`, `KoInfo`, `MarketInfo`, `PriceKoInfo`, `PriceWithDecimals`
+//!   here are byte-equivalent to their counterparts in
+//!   `models::instrument_search`. Per the Phase 3X rule, two-group dups
+//!   without field-shape divergence are left in place — promoting them
+//!   would churn `models::shared` without clear payoff.
 
 use crate::ids::{InstrumentId, MarketId, TickSizeId};
+use crate::models::shared::opt_arb_prec;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-
-/// Local serde adapter for `Option<Decimal>` that uses arbitrary-precision
-/// number encoding (matches the `arbitrary_precision` adapter applied to
-/// non-optional `Decimal` fields).
-///
-/// `rust_decimal` exposes `arbitrary_precision_option` directly; this
-/// module wraps it so the import surface in the field attributes stays
-/// uniform with the non-optional case and so changes to the underlying
-/// implementation can be made in one place.
-mod opt_arb_prec {
-    use rust_decimal::Decimal;
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-    pub fn serialize<S>(value: &Option<Decimal>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        #[derive(Serialize)]
-        struct Wrapped<'a>(#[serde(with = "rust_decimal::serde::arbitrary_precision")] &'a Decimal);
-        value.as_ref().map(Wrapped).serialize(serializer)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Decimal>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        #[derive(Deserialize)]
-        struct Wrapped(#[serde(with = "rust_decimal::serde::arbitrary_precision")] Decimal);
-        Ok(Option::<Wrapped>::deserialize(deserializer)?.map(|w| w.0))
-    }
-}
 
 /// A price value paired with its number of decimals.
 ///

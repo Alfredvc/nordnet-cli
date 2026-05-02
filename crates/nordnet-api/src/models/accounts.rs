@@ -20,66 +20,63 @@
 //! and the documented `Amount` schema vs `crate::models::shared::Money`) is
 //! deferred to Phase 3X.
 //!
-//! ## Doc notes (for Phase 3X reconciliation)
+//! ## Doc notes
 //!
 //! - The documented `Amount` schema is `{currency: string, value:
-//!   number(double)}`. This does NOT match the foundation
-//!   `crate::models::shared::Amount` (a bare `Decimal` newtype) nor
-//!   `shared::Money` (which uses field name `amount` rather than `value`).
-//!   We define [`Amount`] locally here per the Amount schema, with `value`
-//!   typed as [`rust_decimal::Decimal`] (never `f64`) per CONTRACTS.md.
-//!   Phase 3X may unify these.
+//!   number(double)}`. Phase 3X promoted this to
+//!   [`crate::models::shared::AmountWithCurrency`]; the local `Amount`
+//!   alias below is kept for source compatibility (typedef'd to the
+//!   shared type) and uses [`crate::models::shared::Currency`] for the
+//!   `currency` field. Wire format unchanged (Currency is
+//!   `serde(transparent)` over `String`).
 //! - [`PositionInstrument`] is a local definition for the `Instrument` type
 //!   used by `Position.instrument`. The full `instruments::Instrument` lives
 //!   in another group's models module; `crate::models::shared` cannot host
 //!   it (locked after Phase 0). Only the fields we have schema evidence for
-//!   are present here. Phase 3X may consolidate with
-//!   `instruments::Instrument`.
+//!   are present here. Cross-group `Instrument` consolidation deferred —
+//!   the two shapes have different field sets (the `Position.instrument`
+//!   shape lacks `tradables`, `underlyings`, `key_information_documents`,
+//!   `mifid2_category`, etc.).
 //! - [`TradableRef`] is the documented `TradableId` *schema object*
 //!   (`{identifier, market_id}`) used as the `tradable` field of
 //!   [`Trade`]. The bare-string newtype `crate::ids::TradableId` is a
 //!   different concept (a single `identifier` value); we keep both
-//!   distinct here and let Phase 3X reconcile naming.
+//!   distinct here. (See also `orders::OrderTradable` for the same wire
+//!   shape under a different name — kept duplicated as 2-group dup
+//!   without field-shape divergence.)
 //! - `Position.qty` and `Trade.volume` are `number(float)` /
 //!   `number(double)` per the schema. They are typed as
 //!   [`rust_decimal::Decimal`] (with the `arbitrary_precision` adapter)
-//!   per CONTRACTS.md. Because of this `Position`, `Trade`, `Amount`,
-//!   `AccountInfo`, `Ledger`, `LedgerInformation`, `Reserved` and
+//!   per CONTRACTS.md. Because of this `Position`, `Trade`,
+//!   [`crate::models::shared::AmountWithCurrency`], `AccountInfo`,
+//!   `Ledger`, `LedgerInformation`, `Reserved` and
 //!   `AccountTransactionsToday` cannot derive [`Eq`].
 //! - `Account.atyid` is documented as `integer(int32)`. Kept as `i32`.
 //! - `Trade.tradetime` is `integer(int64)` UNIX milliseconds. Kept as
 //!   plain `i64` (no `EpochMillis` newtype exists under
 //!   `crate::models::shared`).
 //! - `AccountInfo.registration_date` is `string(date)` (`YYYY-MM-DD`).
-//!   Kept as plain `String` — wiring `time::Date` would require a custom
-//!   serde adapter, out of scope for the typed binding's first pass.
+//!   Phase 3X switched it from `Option<String>` to `Option<time::Date>`
+//!   via [`crate::models::shared::date_iso8601::option`].
+//! - `PositionInstrument.expiration_date` (same `string(date)` shape) was
+//!   likewise switched in Phase 3X.
 //! - The `Account.type` and `AccountInfo.account_currency` fields are bare
 //!   strings per the schema; we deliberately do NOT use
-//!   [`crate::models::shared::Currency`] for `account_currency` so the
-//!   harmonisation belongs to Phase 3X.
+//!   [`crate::models::shared::Currency`] for `account_currency` because
+//!   the schema documents it as a plain `string` (no separate `currency`
+//!   wire shape), and the field is documented to mirror the bare ledger
+//!   currency strings used elsewhere on `Ledger`.
 
 use crate::ids::{AccountId, MarketId, OrderId, TradableId};
+use crate::models::shared::{date_iso8601, opt_arb_prec};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-/// A monetary amount with currency, per the documented `Amount` schema
-/// (`{currency: string, value: number(double)}`).
-///
-/// Distinct from [`crate::models::shared::Amount`] (a bare `Decimal` newtype)
-/// and from [`crate::models::shared::Money`] (which uses field name
-/// `amount` rather than `value`). Phase 3X may unify.
-///
-/// Cannot derive [`Eq`] because `value` is a `Decimal` (only `PartialEq`
-/// is available with the `arbitrary_precision` adapter).
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
-pub struct Amount {
-    /// The amount currency. Bare string per schema.
-    pub currency: String,
-    /// The amount. `Decimal` (never `f64`) per CONTRACTS.md.
-    #[serde(with = "rust_decimal::serde::arbitrary_precision")]
-    pub value: Decimal,
-}
+/// Local source-compatibility alias for the documented `Amount` schema
+/// (`{currency, value}`). Phase 3X promoted the type to
+/// [`crate::models::shared::AmountWithCurrency`]; this `pub use` keeps
+/// the in-group spelling (`Amount`) working at every reference site.
+pub use crate::models::shared::AmountWithCurrency as Amount;
 
 /// One Nordnet account the authenticated user has access to.
 ///
@@ -190,10 +187,15 @@ pub struct AccountInfo {
     pub own_capital_morning: Amount,
     /// The pawn value of all positions combined.
     pub pawn_value: Amount,
-    /// The registration date of the account formatted as `YYYY-MM-DD`
-    /// (kept as `String` — see module doc note).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub registration_date: Option<String>,
+    /// The registration date of the account formatted as `YYYY-MM-DD`;
+    /// typed as [`time::Date`] via the `date_iso8601::option` adapter
+    /// (Phase 3X).
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "date_iso8601::option"
+    )]
+    pub registration_date: Option<time::Date>,
     /// Summary of reserved trading power.
     pub reserved: Reserved,
     /// The short position margin if available.
@@ -282,10 +284,14 @@ pub struct PositionInstrument {
     /// The dividend policy.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dividend_policy: Option<String>,
-    /// Expiration date if applicable. `YYYY-MM-DD` per schema (kept as
-    /// `String` — see module doc note).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub expiration_date: Option<String>,
+    /// Expiration date if applicable. `YYYY-MM-DD` per schema; typed as
+    /// [`time::Date`] via the `date_iso8601::option` adapter (Phase 3X).
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "date_iso8601::option"
+    )]
+    pub expiration_date: Option<time::Date>,
     /// The instrument group (wider description than instrument type).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub instrument_group_type: Option<String>,
@@ -445,27 +451,7 @@ pub struct Trade {
     pub volume: Decimal,
 }
 
-/// Local serde adapter for `Option<Decimal>` that uses arbitrary-precision
-/// number encoding (mirrors the helper in `models/instruments.rs`).
-mod opt_arb_prec {
-    use rust_decimal::Decimal;
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-    pub fn serialize<S>(value: &Option<Decimal>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        #[derive(Serialize)]
-        struct Wrapped<'a>(#[serde(with = "rust_decimal::serde::arbitrary_precision")] &'a Decimal);
-        value.as_ref().map(Wrapped).serialize(serializer)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Decimal>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        #[derive(Deserialize)]
-        struct Wrapped(#[serde(with = "rust_decimal::serde::arbitrary_precision")] Decimal);
-        Ok(Option::<Wrapped>::deserialize(deserializer)?.map(|w| w.0))
-    }
-}
+// Phase 3X: the `Option<Decimal>` arbitrary-precision adapter that used
+// to live here was promoted to `crate::models::shared::opt_arb_prec` (it
+// was duplicated in 4 group files — see PROCESS.md "Locked decisions"
+// item 11).

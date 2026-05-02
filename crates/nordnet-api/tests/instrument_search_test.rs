@@ -12,7 +12,7 @@
 //!    `search_optionlist_pairs` asserts the required query parameters
 //!    are forwarded.
 
-use nordnet_api::ids::{InstrumentId, MarketId, TickSizeId};
+use nordnet_api::ids::{InstrumentId, IssuerId, MarketId, TickSizeId};
 use nordnet_api::models::instrument_search::{
     AttributeResults, BullBearListResults, MinifutureListResults, OptionListResults,
     StocklistResults, UnlimitedTurboListResults,
@@ -104,7 +104,7 @@ fn search_stocklist_fixture_roundtrip() {
     let first_info = results[0].instrument_info.as_ref().unwrap();
     assert_eq!(first_info.instrument_id, Some(ERIC_B));
     assert_eq!(first_info.symbol.as_deref(), Some("ERIC B"));
-    assert_eq!(first_info.issuer_id, Some(1));
+    assert_eq!(first_info.issuer_id, Some(IssuerId(1)));
 
     let market = results[0].market_info.as_ref().unwrap();
     assert_eq!(market.market_id, Some(MarketId(11)));

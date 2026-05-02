@@ -20,12 +20,14 @@
 //! `PriceWithDecimals`, `MarketInfo` also appear in `models::main_search`;
 //! `IssuerId` precedent in `models::instruments`) is deferred to Phase 3X.
 //!
-//! ## Doc notes (for Phase 3X reconciliation)
+//! ## Doc notes
 //!
 //! - `number(double)` and bare `number` fields are typed as
 //!   [`rust_decimal::Decimal`] (with the `arbitrary_precision` adapter)
 //!   per CONTRACTS.md — never `f64`. As a result these types cannot derive
-//!   [`Eq`].
+//!   [`Eq`]. The `Option<Decimal>` adapter was promoted to
+//!   [`crate::models::shared::opt_arb_prec`] in Phase 3X (it had been
+//!   duplicated in 4 group files).
 //! - Several timestamp-shaped `integer(int64)` fields
 //!   (`first_trading_date`, `dividend_date`, `excluding_date`,
 //!   `general_meeting_date`, `report_date`, `statistics_timestamp`,
@@ -33,12 +35,15 @@
 //!   UNIX-epoch-millis convention per the docs but are kept as plain `i64`
 //!   (no `Timestamp` newtype exists for epoch-millis under
 //!   `crate::models::shared`).
-//! - `InstrumentInfo.issuer_id` is `integer(int64)` but the foundation
-//!   `crate::ids` module does not currently expose `IssuerId`. Following
-//!   the precedent of [`crate::models::instruments::IssuerId`], we keep
-//!   the field as plain `i64` here. Phase 3X may promote it to a newtype.
+//! - `InstrumentInfo.issuer_id` is `integer(int64)`. Phase 3X promoted
+//!   the `IssuerId` newtype to [`crate::ids::IssuerId`]; this field now
+//!   uses it.
 //! - `MarketInfo.market_sub_id` is `integer(int64)` with no dedicated
-//!   newtype, so plain `i64` is used (mirrors the `main_search` precedent).
+//!   newtype, so plain `i64` is used. The `EtpInfo`, `KoInfo`, `MarketInfo`,
+//!   `PriceKoInfo`, `PriceWithDecimals` types here are byte-equivalent to
+//!   their counterparts in `models::main_search`; per the Phase 3X rule
+//!   ("two-group dup stays duplicated unless field-shape divergence") the
+//!   duplication is intentional and documented.
 //! - `OptionInfo.risk_free_interest` and `OptionInfo.strike_price` are
 //!   bare `number` (not `number(double)`) in the schema; we still use
 //!   [`Decimal`] per the "never `f64`" rule.
@@ -47,39 +52,10 @@
 //! - `attributes_count` (in `AttributeResults`) is the only required field
 //!   on that struct.
 
-use crate::ids::{InstrumentId, MarketId, TickSizeId};
+use crate::ids::{InstrumentId, IssuerId, MarketId, TickSizeId};
+use crate::models::shared::opt_arb_prec;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-
-/// Local serde adapter for `Option<Decimal>` that uses arbitrary-precision
-/// number encoding (matches the `arbitrary_precision` adapter applied to
-/// non-optional `Decimal` fields).
-///
-/// Mirrors the helpers in `models/main_search.rs` and `models/instruments.rs`;
-/// kept private so changes to the underlying implementation can be made in
-/// one place per group.
-mod opt_arb_prec {
-    use rust_decimal::Decimal;
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-    pub fn serialize<S>(value: &Option<Decimal>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        #[derive(Serialize)]
-        struct Wrapped<'a>(#[serde(with = "rust_decimal::serde::arbitrary_precision")] &'a Decimal);
-        value.as_ref().map(Wrapped).serialize(serializer)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Decimal>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        #[derive(Deserialize)]
-        struct Wrapped(#[serde(with = "rust_decimal::serde::arbitrary_precision")] Decimal);
-        Ok(Option::<Wrapped>::deserialize(deserializer)?.map(|w| w.0))
-    }
-}
 
 // ---------------------------------------------------------------------------
 // Attribute search (get_attributes)
@@ -224,7 +200,7 @@ pub struct MarketInfo {
 /// Instrument information block reported in an instrument-search row.
 ///
 /// Schema: `_definitions/InstrumentInfo.md`. All fields optional per doc.
-/// `issuer_id` is plain `i64` — see module doc note.
+/// `issuer_id` uses [`crate::ids::IssuerId`] (Phase 3X promotion).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct InstrumentInfo {
@@ -264,9 +240,9 @@ pub struct InstrumentInfo {
     /// International securities identification number (ISIN).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub isin: Option<String>,
-    /// Issuer ID. Plain `i64` — see module doc note re: `IssuerId`.
+    /// Issuer ID. Phase 3X promoted to [`crate::ids::IssuerId`].
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub issuer_id: Option<i64>,
+    pub issuer_id: Option<IssuerId>,
     /// Issuer name.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub issuer_name: Option<String>,

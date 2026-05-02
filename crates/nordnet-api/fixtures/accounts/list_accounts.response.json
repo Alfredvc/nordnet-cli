@@ -1,0 +1,19 @@
+[
+  {
+    "accid": 1,
+    "accno": 12345678,
+    "alias": "Main",
+    "atyid": 3,
+    "default": true,
+    "is_blocked": false,
+    "type": "AF"
+  },
+  {
+    "accno": 87654321,
+    "alias": "Joint",
+    "blocked_reason": "Pending KYC",
+    "default": false,
+    "is_blocked": true,
+    "type": "ISK"
+  }
+]

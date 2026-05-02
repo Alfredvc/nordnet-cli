@@ -17,27 +17,32 @@
 //! deduplication (e.g. with the structurally similar `tradables` group types,
 //! which also defines `PublicTrade`) is deferred to Phase 3X.
 //!
-//! ## Doc notes (for Phase 3X reconciliation)
+//! ## Doc notes
 //!
 //! - `instrument_id` in [`InstrumentEligibility`] and [`InstrumentPublicTrades`]
 //!   is documented as `integer(int32)` whereas every other `instrument_id` in
 //!   the API is `integer(int64)`. We keep the uniform [`InstrumentId`] newtype
 //!   (which is `i64`) and flag the asymmetry here. Phase 3X may either widen
 //!   the docs upstream or introduce a narrower newtype.
-//! - `issuer_id` in [`Issuer`] is `integer(int64)`. The foundation
-//!   `crate::ids` module is locked and does not expose an `IssuerId`; the
-//!   newtype [`IssuerId`] is defined LOCALLY here, mirroring the
-//!   `news::NewsId` precedent. Phase 3X may promote it to `crate::ids`.
-//! - `Instrument.expiration_date` is `string(date)` (i.e. `YYYY-MM-DD`). It
-//!   is kept as a plain `String` here — wiring `time::Date` would require a
-//!   custom serde adapter, which is out of scope for the typed binding's
-//!   first pass.
+//! - `issuer_id` in [`Issuer`] is `integer(int64)`. Promoted in Phase 3X to
+//!   [`crate::ids::IssuerId`]; previously a local newtype `IssuerId` lived
+//!   here.
+//! - `Instrument.expiration_date` is `string(date)` (i.e. `YYYY-MM-DD`).
+//!   Phase 3X switched it from `Option<String>` to `Option<time::Date>` via
+//!   [`crate::models::shared::date_iso8601::option`].
+//! - `LeverageFilter.expiration_dates` is an array of `string(date)`. Phase
+//!   3X switched it from `Vec<String>` to `Vec<time::Date>` via
+//!   [`crate::models::shared::date_iso8601::vec`].
+//! - `Tradable.identifier` is documented as a bare `string`. Phase 3X
+//!   switched it from `String` to [`crate::ids::TradableId`] (which is a
+//!   `serde(transparent)` newtype over `String`, wire-compatible).
 //! - `Instrument.currency` is documented as a bare `string`. We deliberately
 //!   do NOT use `crate::models::shared::Currency`: the Nordnet schema does
-//!   not specify the typed shape, so leave the harmonisation to Phase 3X.
+//!   not specify the typed shape, so harmonisation deferred.
 //! - `number(double)` fields are typed as [`rust_decimal::Decimal`] (with the
 //!   `arbitrary_precision` adapter) per CONTRACTS.md — never `f64`. The
-//!   resulting types cannot derive [`Eq`].
+//!   resulting types cannot derive [`Eq`]. The `Option<Decimal>` adapter
+//!   was promoted to [`crate::models::shared::opt_arb_prec`] in Phase 3X.
 //! - `UnderlyingInfo` exposes BOTH `instrument_id` (required) AND the legacy
 //!   misspelled `instrumment_id` (optional). The Rust field name preserves
 //!   the misspelling so the doc note is self-explanatory at the use site;
@@ -50,65 +55,10 @@
 //!   groups (all three groups install methods on the same `Client`). See
 //!   `crate::resources::instruments` for the documented rationale.
 
-use crate::ids::{InstrumentId, MarketId, TickSizeId};
+use crate::ids::{InstrumentId, IssuerId, MarketId, TickSizeId, TradableId};
+use crate::models::shared::{date_iso8601, opt_arb_prec};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-
-/// Local serde adapter for `Option<Decimal>` that uses arbitrary-precision
-/// number encoding (matches the `arbitrary_precision` adapter applied to
-/// non-optional `Decimal` fields).
-///
-/// Mirrors the helper in `models/main_search.rs`; kept private so changes
-/// to the underlying implementation can be made in one place per group.
-mod opt_arb_prec {
-    use rust_decimal::Decimal;
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-    pub fn serialize<S>(value: &Option<Decimal>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        #[derive(Serialize)]
-        struct Wrapped<'a>(#[serde(with = "rust_decimal::serde::arbitrary_precision")] &'a Decimal);
-        value.as_ref().map(Wrapped).serialize(serializer)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Decimal>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        #[derive(Deserialize)]
-        struct Wrapped(#[serde(with = "rust_decimal::serde::arbitrary_precision")] Decimal);
-        Ok(Option::<Wrapped>::deserialize(deserializer)?.map(|w| w.0))
-    }
-}
-
-/// Unique issuer ID.
-///
-/// Defined here because `crate::ids` (foundation) is locked and does not
-/// currently expose `IssuerId`. Phase 3X may promote this to
-/// `crate::ids::IssuerId`. Mirrors the `news::NewsId` pattern.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct IssuerId(pub i64);
-
-impl std::fmt::Display for IssuerId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(&self.0, f)
-    }
-}
-
-impl From<i64> for IssuerId {
-    fn from(v: i64) -> Self {
-        Self(v)
-    }
-}
-
-impl From<IssuerId> for i64 {
-    fn from(v: IssuerId) -> Self {
-        v.0
-    }
-}
 
 /// URLs to key information documents (KIDs).
 ///
@@ -164,10 +114,10 @@ pub struct Tradable {
     /// Determines the display order of the tradables for an instrument.
     pub display_order: i64,
     /// Nordnet tradable identifier. The combination of market ID and
-    /// identifier is unique. Plain `String` here (not `crate::ids::TradableId`)
-    /// because the schema documents this field as a bare `string`; cross-group
-    /// reconciliation belongs in Phase 3X.
-    pub identifier: String,
+    /// identifier is unique. Phase 3X switched the type from `String` to
+    /// [`crate::ids::TradableId`] (serde-transparent newtype, wire form
+    /// unchanged) for consistency with the rest of the API surface.
+    pub identifier: TradableId,
     /// The lot size of the tradable. `Decimal` (never `f64`) per
     /// CONTRACTS.md.
     #[serde(with = "rust_decimal::serde::arbitrary_precision")]
@@ -202,10 +152,14 @@ pub struct Instrument {
     /// The dividend policy.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dividend_policy: Option<String>,
-    /// Expiration date if applicable. `YYYY-MM-DD` per the schema (kept
-    /// as `String` — see module doc note).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub expiration_date: Option<String>,
+    /// Expiration date if applicable. `YYYY-MM-DD` per the schema; typed
+    /// as [`time::Date`] via the `date_iso8601::option` adapter (Phase 3X).
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "date_iso8601::option"
+    )]
+    pub expiration_date: Option<time::Date>,
     /// The instrument group (wider description than instrument type).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub instrument_group_type: Option<String>,
@@ -403,8 +357,11 @@ pub struct Issuer {
 pub struct LeverageFilter {
     /// List of valid currencies.
     pub currencies: Vec<String>,
-    /// List of valid expiry dates (`YYYY-MM-DD` per Nordnet date convention).
-    pub expiration_dates: Vec<String>,
+    /// List of valid expiry dates (`YYYY-MM-DD` per Nordnet date
+    /// convention); typed as [`time::Date`] via `date_iso8601::vec`
+    /// (Phase 3X).
+    #[serde(with = "date_iso8601::vec")]
+    pub expiration_dates: Vec<time::Date>,
     /// List of valid instrument group types.
     pub instrument_group_types: Vec<String>,
     /// List of valid instrument types.

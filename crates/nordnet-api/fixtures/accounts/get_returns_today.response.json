@@ -1,0 +1,8 @@
+[
+  {
+    "transactions": {"currency": "SEK", "value": 2500.0}
+  },
+  {
+    "transactions": {"currency": "EUR", "value": -100.50}
+  }
+]

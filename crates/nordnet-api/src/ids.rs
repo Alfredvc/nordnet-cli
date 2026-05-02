@@ -11,6 +11,7 @@
 //! | [`MarketId`]     | `i64`         | `market_id` — `integer(int64)` |
 //! | [`TickSizeId`]   | `i64`         | `tick_size_id` — `integer(int64)` |
 //! | [`TradableId`]   | `String`      | `identifier` — `string` |
+//! | [`IssuerId`]     | `i64`         | `issuer_id` — `integer(int64)` (added by Phase 3X) |
 //!
 //! All newtypes are `#[serde(transparent)]` so they round-trip identically
 //! to the underlying primitive on the wire — the strong typing exists only
@@ -97,6 +98,12 @@ id_newtype_int!(
 id_newtype_string!(
     /// Tradable identifier (`identifier` field). String form per docs.
     TradableId
+);
+id_newtype_int!(
+    /// `issuer_id` — issuer identifier for leverage instruments.
+    /// Added by Phase 3X (cross-endpoint type consistency); previously
+    /// duplicated as `models::instruments::IssuerId`.
+    IssuerId
 );
 
 #[cfg(test)]

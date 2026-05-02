@@ -13,7 +13,14 @@
 //! contract; do not change it.
 
 #[cfg(feature = "orders-cli")]
-#[derive(clap::Subcommand)]
+#[derive(Debug, clap::Subcommand)]
+// `OrdersCmd::Write` carries `orders_write::Cmd::Place(PlaceArgs)`, which
+// has 15 fields (full PlaceOrderRequest). Boxing the variant doesn't play
+// well with clap's `#[command(flatten)]` derive plumbing, and the size
+// only matters for runtime perf — we instantiate this enum exactly once
+// per CLI invocation, so the heap cost of an indirection would buy
+// nothing.
+#[allow(clippy::large_enum_variant)]
 pub enum OrdersCmd {
     #[command(flatten)]
     Read(crate::cmd::orders_read::Cmd),
@@ -23,10 +30,10 @@ pub enum OrdersCmd {
 
 #[cfg(feature = "orders-cli")]
 impl OrdersCmd {
-    pub async fn run(self, client: &nordnet_api::Client) -> anyhow::Result<()> {
+    pub async fn run(self, client: &nordnet_api::Client, fields: &[String]) -> anyhow::Result<()> {
         match self {
-            Self::Read(c) => c.run(client).await,
-            Self::Write(c) => c.run(client).await,
+            Self::Read(c) => c.run(client, fields).await,
+            Self::Write(c) => c.run(client, fields).await,
         }
     }
 }

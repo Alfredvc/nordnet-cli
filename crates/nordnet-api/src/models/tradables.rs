@@ -88,15 +88,23 @@ pub struct CalendarDay {
     pub open: i64,
 }
 
-/// One allowed order type for a tradable.
+/// One allowed order type for a tradable: a `(name, type)` pair where
+/// `name` is the localized label and `type` is the wire code (e.g.
+/// `LIMIT`, `STOP_LIMIT`).
 ///
 /// Schema: `_definitions/OrderType.md`. Both fields are required.
+///
+/// Renamed from `OrderType` to `AllowedOrderType` to disambiguate from
+/// [`crate::models::orders::OrderType`], which is the closed enum used
+/// on the request side of `place_order`. Each is a different concept —
+/// the tradable's allowed-set is a per-instrument capability discovered
+/// at runtime; the request enum is the value the caller sends.
 ///
 /// The wire field `type` is a Rust keyword — exposed as `r#type` with
 /// `#[serde(rename = "type")]`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct OrderType {
+pub struct AllowedOrderType {
     /// The translated order type.
     pub name: String,
     /// The order type code. Renamed to `r#type` because `type` is a Rust
@@ -121,7 +129,7 @@ pub struct TradableInfo {
     /// The Nordnet unique market identifier.
     pub market_id: MarketId,
     /// Allowed order types.
-    pub order_types: Vec<OrderType>,
+    pub order_types: Vec<AllowedOrderType>,
 }
 
 /// One public trade executed on the marketplace.

@@ -1,0 +1,23 @@
+[
+  {
+    "accid": 1,
+    "accno": 12345678,
+    "counterparty": "AVA",
+    "order_id": 555001,
+    "price": {"currency": "SEK", "value": 100.50},
+    "side": "BUY",
+    "tradable": {"identifier": "101", "market_id": 11},
+    "trade_id": "T-2024-0001",
+    "tradetime": 1714568400000,
+    "volume": 100.0
+  },
+  {
+    "accno": 12345678,
+    "order_id": 555002,
+    "price": {"currency": "USD", "value": 175.25},
+    "side": "SELL",
+    "tradable": {"identifier": "AAPL", "market_id": 14},
+    "tradetime": 1714568500000,
+    "volume": 5.5
+  }
+]

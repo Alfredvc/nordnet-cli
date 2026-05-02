@@ -9,8 +9,12 @@
 //! - 400 -> [`Error::BadRequest`] ("Invalid parameter.")
 //! - 401 -> [`Error::Unauthorized`] ("Unauthorized to log in ...")
 //! - 403 -> [`Error::Forbidden`]
-//! - 429 -> [`Error::TooManyRequests`] (10s backoff applied by client)
-//! - 503 -> [`Error::ServiceUnavailable`] (Retry-After honored by client)
+//! - 429 -> [`Error::TooManyRequests`] (caller decides backoff; the docs
+//!   suggest 10s, but the library never sleeps or retries — POST/PUT
+//!   on `/orders` is non-idempotent and a hidden retry could double-place)
+//! - 503 -> [`Error::ServiceUnavailable`] (caller decides backoff; the
+//!   server's `Retry-After` header is preserved on the underlying response
+//!   but the library does not honor it automatically)
 //! - any other non-2xx -> [`Error::UnexpectedStatus`]
 
 use thiserror::Error;
@@ -30,13 +34,14 @@ pub enum Error {
     #[error("403 Forbidden: {body}")]
     Forbidden { body: String },
 
-    /// HTTP 429 — Too Many Requests. Client retries once after a 10s wait
-    /// (per docs); this variant is returned if the retry also fails.
+    /// HTTP 429 — Too Many Requests. The library does not retry; the
+    /// caller chooses whether to back off and re-issue.
     #[error("429 Too Many Requests: {body}")]
     TooManyRequests { body: String },
 
-    /// HTTP 503 — Service Unavailable. Client honors `Retry-After`; this
-    /// variant is returned if the retry also fails.
+    /// HTTP 503 — Service Unavailable. The library does not retry; the
+    /// caller chooses whether to back off and re-issue (and is responsible
+    /// for honoring `Retry-After` if present in the underlying response).
     #[error("503 Service Unavailable: {body}")]
     ServiceUnavailable { body: String },
 
@@ -64,6 +69,12 @@ pub enum Error {
     /// contain bytes that are not valid for an HTTP header).
     #[error("invalid header value: {0}")]
     InvalidHeader(String),
+
+    /// Form-urlencoded serialization failed (used by `Client::post_form`
+    /// and `Client::put_form` for endpoints whose Swagger 2.0 parameters
+    /// are marked `FormData`).
+    #[error("form-urlencoded serialization failed: {0}")]
+    EncodeForm(String),
 }
 
 impl Error {

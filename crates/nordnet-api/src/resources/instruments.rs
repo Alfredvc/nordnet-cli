@@ -38,10 +38,9 @@
 
 use crate::client::Client;
 use crate::error::Error;
-use crate::ids::InstrumentId;
+use crate::ids::{InstrumentId, IssuerId};
 use crate::models::instruments::{
-    Instrument, InstrumentEligibility, InstrumentPublicTrades, InstrumentType, IssuerId,
-    LeverageFilter,
+    Instrument, InstrumentEligibility, InstrumentPublicTrades, InstrumentType, LeverageFilter,
 };
 
 /// Optional query parameters for [`Client::list_leverages`] and

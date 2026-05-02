@@ -1,0 +1,16 @@
+ops = ["modify_order"]
+request_fixture = true
+response_fixture = true
+fixture_provenance = "synthesized_from_schema"
+schema_source = "docs-extract/orders/modify_order.md"
+# The live wire format is application/x-www-form-urlencoded (per the
+# Swagger 2.0 `FormData` parameter type in the doc table). The
+# request.json fixture is the canonical model representation; the
+# resource layer transforms it to a urlencoded body via
+# `Client::put_form` (see PROCESS.md §"Locked decisions" item 9).
+# `Decimal` fields appear here as strings (`"102.25"`) because the
+# request struct intentionally omits the `arbitrary_precision_option`
+# adapter — it is incompatible with `serde_urlencoded`. Default
+# `Decimal` serde uses `Display`, producing the same decimal-string form
+# in both formats.
+wire_format = "application/x-www-form-urlencoded"

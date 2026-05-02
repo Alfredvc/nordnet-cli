@@ -21,9 +21,10 @@ tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread", "time"] }
 # Serde stack
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.149", features = ["arbitrary_precision"] }
+serde_urlencoded = "0.7.1"
 
 # CLI
-clap = { version = "4.6.1", features = ["derive"] }
+clap = { version = "4.6.1", features = ["derive", "env"] }
 
 # Errors
 thiserror = "2.0.18"

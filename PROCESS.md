@@ -529,6 +529,8 @@ Real-API verification is the user's responsibility, performed outside this pipel
 
     `models/shared.rs` and `crate::ids` are re-locked after Phase 3X. Phase 4 (CLI) treats them read-only.
 
+12. **Phase 4 amendment — `Cmd::run` signature takes `fields: &[String]` (added at the start of Phase 4, CLI surface).** The Phase 0 locked dispatcher in `crates/nordnet-cli/src/cmd/orders.rs` originally declared `pub async fn run(self, client: &nordnet_api::Client) -> anyhow::Result<()>` — no way for the cmd to access the global `--fields` flag parsed in `main.rs`. Three options were considered: (A) thread `fields: &[String]` through `run`, (B) have cmd functions return `serde_json::Value` and let `main.rs` emit, (C) process-global static. (B) was rejected because returning `Value` forces premature type erasure, blocks future cmd-side typed inspection (logging, multi-emit, branching on response), and adds an extra `serde_json::to_value` allocation per call. (C) was rejected as hidden state. (A) is the standard pattern in Rust clap CLIs (cargo, gh-rs, ripgrep): global flags from the top-level `Cli` are passed down as explicit args. The locked `OrdersCmd::run` signature is therefore now `pub async fn run(self, client: &nordnet_api::Client, fields: &[String]) -> anyhow::Result<()>`, and every Phase 4 cmd file's `Cmd::run` follows the same shape. If a second global flag is added later, callers should refactor to a `CmdContext` struct rather than continue threading individual args.
+
 ## Pipeline state log
 
 | Phase | Status | Commit | Notes |

@@ -23,10 +23,14 @@ pub enum OrdersCmd {
 
 #[cfg(feature = "orders-cli")]
 impl OrdersCmd {
-    pub async fn run(self, client: &nordnet_api::Client) -> anyhow::Result<()> {
+    pub async fn run(
+        self,
+        client: &nordnet_api::Client,
+        fields: &[String],
+    ) -> anyhow::Result<()> {
         match self {
-            Self::Read(c) => c.run(client).await,
-            Self::Write(c) => c.run(client).await,
+            Self::Read(c) => c.run(client, fields).await,
+            Self::Write(c) => c.run(client, fields).await,
         }
     }
 }

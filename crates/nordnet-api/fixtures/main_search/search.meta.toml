@@ -1,0 +1,5 @@
+ops = ["search"]
+request_fixture = false
+response_fixture = true
+fixture_provenance = "synthesized_from_schema"
+schema_source = "docs-extract/main_search/search.md"

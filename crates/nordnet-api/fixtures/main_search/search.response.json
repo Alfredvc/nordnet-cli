@@ -1,0 +1,81 @@
+[
+  {
+    "display_group_description": "Equities",
+    "display_group_type": "EQUITY",
+    "limit": 5,
+    "offset": 0,
+    "total": 1,
+    "results": [
+      {
+        "display_name": "Volvo B",
+        "display_name_highlighted": "<em>Volvo</em> B",
+        "display_symbol": "VOLV B",
+        "instrument_id": 16099583,
+        "instrument_type": "ESH",
+        "instrument_group_type": "EQUITY",
+        "currency": "SEK",
+        "exchange_country": "SE",
+        "diff_pct_one_day": "0.45",
+        "diff_pct_one_year": "12.30",
+        "yield_1y": "3.10",
+        "close_price": {
+          "decimals": 2,
+          "price": 268.50
+        },
+        "last_price": {
+          "decimals": 4,
+          "price": 269.7234
+        },
+        "last_price_title": "Senaste",
+        "spread": {
+          "decimals": 2,
+          "price": 0.10
+        },
+        "spread_pct": 0.037,
+        "turnover": 123456789.50,
+        "turnover_volume": 458320,
+        "tick_timestamp": 1714568400000,
+        "market_data_order_book_id": "OB-VOLV-B",
+        "trading_order_book_id": "TOB-VOLV-B",
+        "nnx_instrument_id": "16099583",
+        "etp_info": {
+          "direction": "Long",
+          "first_trading_date": 1577836800000,
+          "market_view": "Bullish",
+          "nordnet_markets": true,
+          "underlying_instrument_id": 101,
+          "underlying_name": "OMXS30"
+        },
+        "ko_info": {
+          "financial_level": 250.0,
+          "stop_loss": 240.5
+        },
+        "market_info": {
+          "identifier": "XSTO",
+          "market_id": 11,
+          "market_sub_id": 1,
+          "tick_size_id": 1
+        },
+        "price_ko_info": {
+          "indicative_high_risk": false,
+          "indicative_leverage": 4.5,
+          "risk_buffer": 12.75
+        },
+        "status_info": {
+          "tick_timestamp": 1714568400000,
+          "trading_status": "TRADING",
+          "translated_trading_status": "Handlas"
+        }
+      }
+    ]
+  },
+  {
+    "display_group_description": "News",
+    "display_group_type": "NEWS",
+    "results": [
+      {
+        "display_name": "Volvo Q1 report released"
+      }
+    ]
+  }
+]

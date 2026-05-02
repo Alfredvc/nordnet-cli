@@ -2,7 +2,7 @@
 
 Custom pipeline. Supersedes cli-creator default 17-step pipeline because:
 
-- API is large (~43 non-deprecated ops, ~37 paths)
+- API is large (~42 non-deprecated ops, ~37 paths)
 - No OpenAPI spec — types must be hand-derived from docs
 - Real trading + banking API — write ops are destructive
 - Two-crate workspace (`nordnet-api` lib + `nordnet-cli` bin)
@@ -11,7 +11,7 @@ Custom pipeline. Supersedes cli-creator default 17-step pipeline because:
 ## Priority order (binding)
 
 1. **Documentation faithfulness.** Every typed call matches what the docs state — parameter table, request body schema, response schema, status codes, example bodies. Doc inconsistencies trigger reviewer escalation, not guesses.
-2. **Full non-deprecated API parity.** All ~43 ops implemented. Read + write. No staged sub-release.
+2. **Full non-deprecated API parity.** All ~42 ops implemented. Read + write. No staged sub-release.
 3. **Token efficiency via subagent fan-out.** Each implementer touches one resource group only, reads only its slice of docs.
 4. **Strict typing.** No `serde_json::Value` in public API. Newtypes for IDs. `#[serde(deny_unknown_fields)]` everywhere.
 5. **Static gates.** `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test --workspace` must pass at every phase boundary. Pre-commit hook enforces.
@@ -197,57 +197,50 @@ One pass through `docs-source/nordnet-api-v2.html`. Slices into per-operation ma
 
 **Driven by** `cargo xtask extract-docs --html docs-source/nordnet-api-v2.html`. Re-runnable: idempotent over the saved HTML.
 
-**Gate:** human spot-check of inventory against the 45 documented operations (45 documented − 2 deprecated = 43 to implement). Deprecated ops marked + skipped.
+**Gate:** human spot-check of inventory against the 44 documented operations (44 documented − 2 deprecated = 42 to implement; the previously-listed `GET /orders/{id}` is absent from the saved HTML, so the orders group has 5 ops). Deprecated ops marked + skipped.
 
 ---
 
-## Phase 2 — Fixture assembly (sequential, single agent, sonnet)
+## Phase 2 — Fixture assembly (DROPPED)
 
-For every operation, populate `fixtures/<group>/<operation>.{request,response}.json` from the doc HTML's `<pre class="example">` blocks already extracted in Phase 1.
+**Status:** dropped after Phase 1 investigation.
 
-**Process:**
+The saved HTML (`docs-source/nordnet-api-v2.html`) is Swagger2Markup output containing schema tables only — no `<pre class="example">` blocks, no JSON example bodies anywhere. Confirmed via direct grep + structural review of the AsciiDoctor output. There is nothing to canonicalize.
 
-- `cargo xtask extract-docs` populates this directory along with `docs-extract/`. Phase 2's job is to verify completeness, canonicalize JSON formatting (sorted keys, 2-space indent, trailing newline), and write `fixtures/<group>/<operation>.meta.toml`:
+**Implementers own their fixtures.** In Phase 3, each group's implementer derives a minimal JSON fixture per op directly from the response schema table in its `docs-extract/<group>/<op>.md` slice, using documented types and example values where the table provides them. Fixtures live in `fixtures/<group>/<op>.{request,response}.json` as before. Each fixture file's first line is a JSON5-style comment-equivalent stored in `fixtures/<group>/<op>.meta.toml`:
 
 ```toml
 ops = ["get_account_info"]
-request_fixture = false        # true if op has a request body
+request_fixture = false
 response_fixture = true
-extracted_from_doc_section = "<anchor id from HTML>"
-extraction_warnings = []       # e.g. "no example block in docs"
+fixture_provenance = "synthesized_from_schema"   # or "from_doc_example" if a real one ever surfaces
+schema_source = "docs-extract/accounts/get_account_info.md#response-body-schema"
 ```
 
-- Ops where the doc has no example body → `extraction_warnings` lists this. Reviewer flags as a gap; implementer must build the fixture from the response schema table alone, with a comment in the fixture file pointing at the schema source.
-
-**Gate:** every non-deprecated operation has either a fixture or a documented warning. Warnings counted in `notes/02-fixtures.md`.
+This shifts the "fixture realism" burden onto the per-group implementer, who has the schema table loaded already.
 
 ---
 
-## Phase 2C — Cross-source consistency check (sequential, single agent, opus)
+## Phase 2C — Cross-source consistency check (DROPPED)
 
-Before any implementer touches code, scan every `docs-extract/<group>/<op>.md` and check that:
+**Status:** dropped — degenerate without example bodies.
 
-- Field names in the parameter table appear in the example request body.
-- Field names in the response schema table appear in the example response body.
-- Type annotations in the schema table match the JSON types in the example body (string vs number vs object).
-- Required-vs-optional in the schema table matches the example body's presence/absence (best-effort — example may legally omit optionals).
+The check compared parameter table ↔ example request body and response schema ↔ example response body. With no examples, all comparisons would pass vacuously. Removed from the gate sequence.
 
-**Outputs:** `notes/02C-doc-consistency.md` listing every disagreement. Each implementer in Phase 3 reads only the disagreements for its group and resolves via the conservative-pick rule in CONTRACTS.md.
-
-**Gate:** report written. No code changes here — output is informational for Phase 3.
+Cross-endpoint type consistency (Phase 3X) remains and absorbs the safety net: type-name reconciliation across groups stays a hard gate.
 
 ---
 
 ## Phase 3 — Resource implementation (PARALLEL, sonnet, with reviewer per task)
 
-Big phase. Decompose ~43 ops into 12 API resource groups. One subagent per group. **The API crate has no read/write split — that distinction lives only in the CLI crate (Phase 4).**
+Big phase. Decompose ~42 ops into 12 API resource groups. One subagent per group. **The API crate has no read/write split — that distinction lives only in the CLI crate (Phase 4).**
 
 ### API group decomposition
 
 | Group | Ops |
 |---|---|
 | `accounts` | list, info, ledgers, positions, returns_today, trades |
-| `orders` | list, get, place, modify, activate, cancel |
+| `orders` | list, place, modify, activate, cancel |
 | `instruments` | get, lookup, types, types_list, leverages, leverage_filters, suitability, trades, underlyings |
 | `instrument_search` | attributes, stocklist, bullbearlist, minifuturelist, optionlist_pairs, unlimitedturbolist |
 | `tradables` | info, trades, suitability |
@@ -397,7 +390,7 @@ Subcommands per CLI group. **The CLI splits read and write where applicable; the
 | CLI group | API group | Ops | Subcommand path |
 |---|---|---|---|
 | `accounts` | `accounts` | list, info, ledgers, positions, returns_today, trades | `nordnet accounts <op>` |
-| `orders_read` | `orders` | list, get | `nordnet orders list / get` |
+| `orders_read` | `orders` | list | `nordnet orders list` |
 | `orders_write` | `orders` | place, modify, activate, cancel | `nordnet orders place / modify / activate / cancel` |
 | `instruments` | `instruments` | (all 9) | `nordnet instruments <op>` |
 | `instrument_search` | `instrument_search` | (all 6) | `nordnet instrument-search <op>` |
@@ -498,7 +491,7 @@ The merge step. Conflict-free by design — every implementer wrote in its own f
 
 ## Definition of done
 
-- All ~43 non-deprecated operations implemented and typed.
+- All ~42 non-deprecated operations implemented and typed.
 - Every fixture roundtrips losslessly under `deny_unknown_fields`.
 - Every op has a wiremock integration test.
 - Cross-source and cross-endpoint consistency gates passed; outstanding doc inconsistencies documented.

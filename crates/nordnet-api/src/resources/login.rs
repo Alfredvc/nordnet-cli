@@ -11,12 +11,10 @@
 //!
 //! ## Body-less PUT
 //!
-//! `refresh_session` is documented with no request body. The foundation
-//! [`Client::put`] requires a body type today (foundation is locked at
-//! Phase 0). We pass `&()` so reqwest serialises a JSON `null` payload.
-//! The accompanying integration test asserts the call still completes
-//! against a wiremock server that does not constrain the request body.
-//! Phase 3X may introduce a body-less helper to drop the `null` payload.
+//! `refresh_session` is documented with no request body. We use the
+//! foundation [`Client::put_empty`] helper, which omits the
+//! `Content-Type` header and sends a zero-length payload — the shape
+//! Nordnet's `PUT /login` expects.
 
 use crate::client::Client;
 use crate::error::Error;
@@ -76,10 +74,7 @@ impl Client {
     /// [`Error::TooManyRequests`] (429), or [`Error::ServiceUnavailable`]
     /// (503) per the docs.
     pub async fn refresh_session(&self) -> Result<LoggedInStatus, Error> {
-        // Body-less PUT: see module-level note. We pass `&()` so the
-        // foundation `put` helper has the body type it requires; reqwest
-        // serialises this as a JSON `null` payload.
-        self.put::<LoggedInStatus, ()>("/login", &()).await
+        self.put_empty("/login").await
     }
 
     /// `DELETE /login` — Invalidate the current session.

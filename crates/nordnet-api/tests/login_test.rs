@@ -21,7 +21,6 @@ use nordnet_api::models::login::{
 };
 use nordnet_api::{Client, Error};
 use pretty_assertions::assert_eq;
-use serde_json::json;
 use wiremock::matchers::{body_json, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -285,15 +284,13 @@ async fn refresh_session_returns_logged_in_true() {
 }
 
 #[tokio::test]
-async fn refresh_session_body_is_json_null() {
-    // Sanity-check the documented body-less PUT behaviour: the
-    // foundation `put` helper requires a body, so we pass `&()` which
-    // reqwest serialises as JSON `null`. Confirm the wire payload is
-    // exactly that and doesn't trip a body matcher.
+async fn refresh_session_sends_empty_body() {
+    // `PUT /login` is documented body-less. Verify the wire request has a
+    // zero-length body and no Content-Type header.
     let server = MockServer::start().await;
     Mock::given(method("PUT"))
         .and(path("/login"))
-        .and(body_json(json!(null)))
+        .and(wiremock::matchers::body_bytes(b"" as &[u8]))
         .respond_with(
             ResponseTemplate::new(200).set_body_string(refresh_session_response_fixture()),
         )

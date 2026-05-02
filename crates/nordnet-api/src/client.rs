@@ -98,6 +98,13 @@ impl Client {
         self.send(Method::PUT, path, Some(body)).await
     }
 
+    /// PUT `<base_url><path>` with no request body. The wire request omits
+    /// the `Content-Type` header and sends a zero-length body — this is the
+    /// shape Nordnet's `PUT /login` (refresh session) expects.
+    pub async fn put_empty<T: DeserializeOwned>(&self, path: &str) -> Result<T, Error> {
+        self.send::<T, ()>(Method::PUT, path, None).await
+    }
+
     /// DELETE `<base_url><path>` and parse the JSON response.
     pub async fn delete<T: DeserializeOwned>(&self, path: &str) -> Result<T, Error> {
         self.send::<T, ()>(Method::DELETE, path, None).await

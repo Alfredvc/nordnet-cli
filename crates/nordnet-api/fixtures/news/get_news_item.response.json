@@ -1,0 +1,31 @@
+[
+  {
+    "body": "Volvo Cars reports a 12% rise in Q3 net sales driven by strong EV demand across Europe.",
+    "byline": "Nordnet Newsroom",
+    "headline": "Volvo reports Q3 earnings",
+    "instruments": [101, 202],
+    "isin_codes": ["SE0000115446", "SE0000108656"],
+    "lang": "sv",
+    "markdown_format": false,
+    "markets": [11, 15],
+    "news_id": 4567890123,
+    "news_type": "NEWS",
+    "sectors": ["AUTOMOTIVE", "INDUSTRIALS"],
+    "source_id": 7,
+    "summary": "Q3 net sales up 12% year over year.",
+    "timestamp": 1714632000000,
+    "type": "NEWS",
+    "version": 1
+  },
+  {
+    "headline": "Trading halt: example security",
+    "lang": "en",
+    "markdown_format": true,
+    "news_id": 4567890124,
+    "news_type": "TRADING_HALT",
+    "source_id": 8,
+    "timestamp": 1714632300000,
+    "type": "NEWS",
+    "version": 2
+  }
+]

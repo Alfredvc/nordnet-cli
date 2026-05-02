@@ -1,0 +1,13 @@
+[
+  {
+    "countries": ["SE", "NO", "FI"],
+    "level": "REALTIME",
+    "name": "Direkt",
+    "source_id": 7
+  },
+  {
+    "level": "DELAYED",
+    "name": "Reuters Delayed",
+    "source_id": 8
+  }
+]

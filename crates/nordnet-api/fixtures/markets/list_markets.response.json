@@ -1,0 +1,5 @@
+[
+  {"country": "SE", "market_id": 11, "name": "Stockholmsbörsen"},
+  {"country": "NO", "market_id": 15, "name": "Oslo Børs"},
+  {"market_id": 80, "name": "Virtual market"}
+]

@@ -42,3 +42,9 @@ _(no example blocks in documentation HTML)_
 ## Doc inconsistencies
 
 _(none identified during Phase 1 extraction)_
+
+## Referenced types
+
+- [ApiKeyLoginResponse](../_definitions/ApiKeyLoginResponse.md)
+- [ApiKeyVerifyLoginRequest](../_definitions/ApiKeyVerifyLoginRequest.md)
+- [ErrorResponse](../_definitions/ErrorResponse.md)

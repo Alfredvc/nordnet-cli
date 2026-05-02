@@ -37,3 +37,8 @@ _(no example blocks in documentation HTML)_
 ## Doc inconsistencies
 
 _(none identified during Phase 1 extraction)_
+
+## Referenced types
+
+- [ErrorResponse](../_definitions/ErrorResponse.md)
+- [Status](../_definitions/Status.md)

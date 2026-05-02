@@ -52,3 +52,88 @@ Total: 45 documented operations — 2 deprecated (marked SKIP), 43 to implement.
 | tradables | list_trades | `GET /api/2/tradables/trades/{tradables}` |  |
 | tradables | get_suitability | `GET /api/2/tradables/validation/suitability/{tradables}` |  |
 
+## Definitions
+
+Total: 78 type definitions extracted from the Definitions section.
+
+| Type Name | Field Count |
+|-----------|-------------|
+| Account | 8 |
+| AccountInfo | 25 |
+| AccountTransactionsToday | 1 |
+| ActivationCondition | 4 |
+| Amount | 2 |
+| ApiKeyLoginResponse | 4 |
+| ApiKeyStartLoginRequest | 1 |
+| ApiKeyVerifyLoginRequest | 3 |
+| AttributeResult | 8 |
+| AttributeResults | 2 |
+| BullBearEntity | 6 |
+| BullBearListResults | 4 |
+| CalendarDay | 3 |
+| CertificateInfo | 2 |
+| ChallengeResponse | 1 |
+| CompanyInfo | 10 |
+| Country | 2 |
+| DerivativeInfo | 3 |
+| DiffWithDecimals | 2 |
+| ErrorResponse | 2 |
+| EtpInfo | 6 |
+| ExchangeInfo | 1 |
+| Feed | 3 |
+| FilterDetails | 4 |
+| FilterVal | 3 |
+| HistoricalReturnsInfo | 9 |
+| Instrument | 28 |
+| InstrumentEligibility | 2 |
+| InstrumentInfo | 18 |
+| InstrumentPublicTrades | 2 |
+| InstrumentType | 2 |
+| Issuer | 2 |
+| KeyInformationDocuments | 3 |
+| KeyRatiosInfo | 6 |
+| KoCalcInfo | 4 |
+| KoInfo | 2 |
+| Ledger | 6 |
+| LedgerInformation | 4 |
+| LeverageFilter | 7 |
+| LoggedInStatus | 1 |
+| MainSearchResponse | 6 |
+| MainSearchResponseRow | 48 |
+| Market | 3 |
+| MarketInfo | 4 |
+| MinifutureEntity | 8 |
+| MinifutureListResults | 4 |
+| NewsArticle | 16 |
+| NewsSource | 4 |
+| OptionInfo | 5 |
+| OptionListResults | 3 |
+| OptionlistEntity | 6 |
+| OptionlistPair | 3 |
+| Order | 18 |
+| OrderReply | 5 |
+| OrderType | 2 |
+| Position | 11 |
+| PriceInfo | 17 |
+| PriceKoInfo | 3 |
+| PriceWithDecimals | 2 |
+| PublicTrade | 9 |
+| Reserved | 5 |
+| StatisticalInfo | 2 |
+| Status | 4 |
+| StatusInfo | 3 |
+| Stocklist | 8 |
+| StocklistResults | 3 |
+| TicksizeInterval | 4 |
+| TicksizeTable | 2 |
+| Tradable | 7 |
+| TradableEligibility | 3 |
+| TradableId | 2 |
+| TradableInfo | 5 |
+| TradablePublicTrades | 3 |
+| Trade | 10 |
+| UnderlyingInfo | 4 |
+| UnlimitedTurboEntity | 8 |
+| UnlimitedTurboListResults | 4 |
+| Validity | 2 |
+

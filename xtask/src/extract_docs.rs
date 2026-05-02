@@ -327,6 +327,8 @@ struct Selectors {
     th: Selector,
     tr: Selector,
     p: Selector,
+    strong: Selector,
+    em: Selector,
 }
 
 impl Selectors {
@@ -338,6 +340,8 @@ impl Selectors {
             th: Selector::parse("th").unwrap(),
             tr: Selector::parse("tr").unwrap(),
             p: Selector::parse("p").unwrap(),
+            strong: Selector::parse("strong").unwrap(),
+            em: Selector::parse("em").unwrap(),
         }
     }
 }
@@ -361,6 +365,32 @@ pub fn run(html_path: &Path) -> Result<()> {
     // Build a map: anchor_id -> (method, relative_path, section_html_start, title)
     let section_map = build_section_map(&document, &html_content, &sel)?;
 
+    // ---------------------------------------------------------------------------
+    // Definitions pass — must run before per-op files are written so we can
+    // include cross-links in the same write.
+    // ---------------------------------------------------------------------------
+    let definitions = extract_definitions(&html_content, &sel)?;
+    let defs_dir = docs_extract_root.join("_definitions");
+    fs::create_dir_all(&defs_dir)
+        .with_context(|| format!("creating dir {}", defs_dir.display()))?;
+
+    // Build a set of known type names for cross-link validation.
+    let known_types: std::collections::HashSet<String> =
+        definitions.iter().map(|d| d.type_name.clone()).collect();
+
+    let mut def_inventory_rows: Vec<(String, usize)> = Vec::new();
+
+    for def in &definitions {
+        let md = render_definition_md(def);
+        let md_path = defs_dir.join(format!("{}.md", def.type_name));
+        crate::write_if_changed(&md_path, &md)?;
+        let field_count = def.fields.len();
+        def_inventory_rows.push((def.type_name.clone(), field_count));
+    }
+
+    // ---------------------------------------------------------------------------
+    // Per-op extraction — write each file once, including cross-links.
+    // ---------------------------------------------------------------------------
     let mut inventory_rows: Vec<InventoryRow> = Vec::new();
 
     for op in OPERATIONS {
@@ -391,10 +421,13 @@ pub fn run(html_path: &Path) -> Result<()> {
         // Parse the section into structured parts.
         let parsed = parse_section(&section_content, &sel)?;
 
-        // Render the per-op markdown.
-        let md = render_markdown(op, section_info, &parsed);
+        // Render the per-op markdown (base, no cross-links yet).
+        let base_md = render_markdown(op, section_info, &parsed);
 
-        // Write the file.
+        // Append the "Referenced types" cross-links section.
+        let md = append_referenced_types(&base_md, &known_types);
+
+        // Write the file (idempotent: only writes if content changed).
         let group_dir = docs_extract_root.join(op.group);
         fs::create_dir_all(&group_dir)
             .with_context(|| format!("creating dir {}", group_dir.display()))?;
@@ -402,17 +435,20 @@ pub fn run(html_path: &Path) -> Result<()> {
         crate::write_if_changed(&md_path, &md)?;
     }
 
-    // Write INVENTORY.md.
-    let inventory_md = render_inventory(&inventory_rows);
+    // ---------------------------------------------------------------------------
+    // Write INVENTORY.md (with Definitions table appended).
+    // ---------------------------------------------------------------------------
+    let inventory_md = render_inventory(&inventory_rows, &def_inventory_rows);
     let inventory_path = docs_extract_root.join("INVENTORY.md");
     fs::create_dir_all(&docs_extract_root)
         .with_context(|| format!("creating {}", docs_extract_root.display()))?;
     crate::write_if_changed(&inventory_path, &inventory_md)?;
 
     println!(
-        "extract-docs complete: {} ops ({} non-deprecated), INVENTORY.md written",
+        "extract-docs complete: {} ops ({} non-deprecated), {} definitions, INVENTORY.md written",
         OPERATIONS.len(),
-        OPERATIONS.iter().filter(|o| !o.deprecated).count()
+        OPERATIONS.iter().filter(|o| !o.deprecated).count(),
+        definitions.len(),
     );
     Ok(())
 }
@@ -901,6 +937,294 @@ fn escape_md(s: &str) -> String {
 }
 
 // ---------------------------------------------------------------------------
+// Definitions extraction
+// ---------------------------------------------------------------------------
+
+/// One parsed definition from the Definitions section.
+struct DefinitionEntry {
+    /// The exact type name from the `<h3>` text (e.g. `Account`, `TicksizeTable`).
+    type_name: String,
+    /// Parsed fields (empty if definition has no table — e.g. enum-only or security schemes).
+    fields: Vec<FieldRow>,
+    /// Inline content for no-table definitions (raw text for the Notes section).
+    inline_content: String,
+}
+
+/// One row in a definition's field table.
+struct FieldRow {
+    name: String,
+    required: String, // "required" | "optional"
+    description: String,
+    schema: String,
+}
+
+/// Extract all `<h3>` definitions from the `<h2 id="_definitions">` section.
+///
+/// The Definitions section runs from `<h2 id="_definitions">` up to (but not
+/// including) the next `<h2>` element (`<h2 id="_securityscheme">`).
+fn extract_definitions(html: &str, sel: &Selectors) -> Result<Vec<DefinitionEntry>> {
+    // Slice the HTML down to just the Definitions section.
+    let def_marker = "id=\"_definitions\"";
+    let sec_marker = "id=\"_securityscheme\"";
+
+    let def_start = html
+        .find(def_marker)
+        .context("Could not find <h2 id=\"_definitions\"> in HTML")?;
+    let sec_start = html
+        .find(sec_marker)
+        .context("Could not find <h2 id=\"_securityscheme\"> in HTML")?;
+
+    // The definitions section HTML runs between these two anchors.
+    let defs_html = &html[def_start..sec_start];
+
+    // Parse each <h3> block in order.
+    let mut definitions: Vec<DefinitionEntry> = Vec::new();
+
+    // Find each <h3 id="..."> in the definitions section.
+    let mut search_from = 0usize;
+    while let Some(rel_pos) = defs_html[search_from..].find("<h3 ") {
+        let h3_start = search_from + rel_pos;
+        // Find the type name from the <h3> text.
+        let h3_close = defs_html[h3_start..]
+            .find('>')
+            .map(|p| h3_start + p)
+            .unwrap_or(h3_start);
+        let h3_end = defs_html[h3_close + 1..]
+            .find("</h3>")
+            .map(|p| h3_close + 1 + p)
+            .unwrap_or(h3_close + 1);
+        let type_name_raw = &defs_html[h3_close + 1..h3_end];
+        // Strip any HTML tags inside the h3 (there usually are none).
+        let type_name = strip_html_tags(type_name_raw).trim().to_string();
+
+        if type_name.is_empty() {
+            search_from = h3_start + 4;
+            continue;
+        }
+
+        // The section content runs from h3_start to just before the next <h3 or end.
+        let after_h3 = h3_end + 5; // past "</h3>"
+        let next_h3 = defs_html[after_h3..]
+            .find("<h3 ")
+            .map(|p| after_h3 + p)
+            .unwrap_or(defs_html.len());
+        let section_html = &defs_html[h3_start..next_h3];
+
+        let entry = parse_definition_entry(&type_name, section_html, sel);
+        definitions.push(entry);
+
+        search_from = next_h3;
+        if search_from >= defs_html.len() {
+            break;
+        }
+    }
+
+    Ok(definitions)
+}
+
+/// Strip basic HTML tags from a string (for cleaning h3 text).
+fn strip_html_tags(s: &str) -> String {
+    let mut out = String::new();
+    let mut in_tag = false;
+    for ch in s.chars() {
+        match ch {
+            '<' => in_tag = true,
+            '>' => in_tag = false,
+            c if !in_tag => out.push(c),
+            _ => {}
+        }
+    }
+    out
+}
+
+/// Parse one definition's `<h3>…</h3><table>…</table>` block into fields.
+fn parse_definition_entry(type_name: &str, section_html: &str, sel: &Selectors) -> DefinitionEntry {
+    let fragment = Html::parse_fragment(section_html);
+
+    // Look for a tableblock table (the definitions use class "tableblock frame-all grid-all stretch").
+    let tables: Vec<_> = fragment.select(&sel.table).collect();
+
+    // Find the definition table: it has Name / Description / Schema headers.
+    let def_table = tables.iter().find(|t| {
+        let headers = extract_table_headers(t, sel);
+        headers.len() >= 3
+            && headers[0].trim().to_lowercase() == "name"
+            && headers[1].trim().to_lowercase() == "description"
+            && headers[2].trim().to_lowercase() == "schema"
+    });
+
+    if let Some(table) = def_table {
+        let fields = extract_definition_fields(table, sel);
+        DefinitionEntry {
+            type_name: type_name.to_string(),
+            fields,
+            inline_content: String::new(),
+        }
+    } else {
+        // No table — collect inline paragraph text for the Notes section.
+        let inline_content = fragment
+            .select(&sel.p)
+            .map(|p| p.text().collect::<String>().trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect::<Vec<_>>()
+            .join(" ");
+        DefinitionEntry {
+            type_name: type_name.to_string(),
+            fields: Vec::new(),
+            inline_content,
+        }
+    }
+}
+
+/// Extract rows from a definition table (Name / Description / Schema columns).
+fn extract_definition_fields(table: &scraper::ElementRef, sel: &Selectors) -> Vec<FieldRow> {
+    let mut rows = Vec::new();
+    for tr in table.select(&sel.tr) {
+        // Skip header rows.
+        if tr.select(&sel.th).next().is_some() {
+            continue;
+        }
+        let tds: Vec<_> = tr.select(&sel.td).collect();
+        if tds.len() < 3 {
+            continue;
+        }
+        // Name cell: <strong>fieldname</strong><br><em>required|optional</em>
+        let name_td = &tds[0];
+        let name = name_td
+            .select(&sel.strong)
+            .next()
+            .map(|el| el.text().collect::<String>().trim().to_string())
+            .unwrap_or_default();
+        let required = name_td
+            .select(&sel.em)
+            .next()
+            .map(|el| el.text().collect::<String>().trim().to_string())
+            .unwrap_or_default();
+
+        // Description cell: plain text, collapse whitespace.
+        let description = clean_cell_text(tds[1].text().collect::<String>());
+
+        // Schema cell: may contain <a> links — text() extracts the visible text.
+        let schema = clean_cell_text(tds[2].text().collect::<String>());
+
+        if name.is_empty() {
+            continue;
+        }
+        rows.push(FieldRow {
+            name,
+            required,
+            description,
+            schema,
+        });
+    }
+    rows
+}
+
+/// Render a definition entry to markdown.
+fn render_definition_md(def: &DefinitionEntry) -> String {
+    let mut md = String::new();
+    md.push_str(&format!("# {}\n\n", def.type_name));
+
+    if def.fields.is_empty() {
+        md.push_str("## Notes\n\n");
+        if def.inline_content.is_empty() {
+            md.push_str("_(no table or inline content found for this definition)_\n");
+        } else {
+            md.push_str(&format!("`{}`\n", def.inline_content));
+        }
+    } else {
+        md.push_str("## Fields\n\n");
+        md.push_str("| Name | Required | Description | Schema |\n");
+        md.push_str("|------|----------|-------------|--------|\n");
+        for field in &def.fields {
+            md.push_str(&format!(
+                "| {} | {} | {} | {} |\n",
+                escape_md(&field.name),
+                escape_md(&field.required),
+                escape_md(&field.description),
+                escape_md(&field.schema),
+            ));
+        }
+    }
+    md
+}
+
+// ---------------------------------------------------------------------------
+// Per-op cross-linking: "Referenced types" section
+// ---------------------------------------------------------------------------
+
+/// Append (or replace) the `## Referenced types` section in a per-op markdown
+/// file. Always recomputes the section from the base content so that re-runs
+/// produce identical output (idempotent).
+fn append_referenced_types(md: &str, known_types: &std::collections::HashSet<String>) -> String {
+    // Strip any existing "## Referenced types" section so we recompute cleanly.
+    let base = strip_referenced_types_section(md);
+
+    let refs = collect_referenced_types(base, known_types);
+
+    let mut out = base.trim_end().to_string();
+    out.push('\n');
+
+    out.push_str("\n## Referenced types\n\n");
+    if refs.is_empty() {
+        out.push_str("_(none)_\n");
+    } else {
+        for type_name in &refs {
+            out.push_str(&format!(
+                "- [{type_name}](../_definitions/{type_name}.md)\n"
+            ));
+        }
+    }
+    out
+}
+
+/// Remove the `## Referenced types` section and everything after it from a
+/// per-op markdown string. Used so re-runs recompute the section from scratch.
+fn strip_referenced_types_section(md: &str) -> &str {
+    if let Some(pos) = md.find("\n## Referenced types") {
+        &md[..pos]
+    } else {
+        md
+    }
+}
+
+/// Extract capitalized type names from a per-op markdown file that exist in the
+/// known definitions set. Looks at the Response Body Schema and Status Codes
+/// sections for type names.
+fn collect_referenced_types(
+    md: &str,
+    known_types: &std::collections::HashSet<String>,
+) -> Vec<String> {
+    use std::collections::BTreeSet;
+
+    let mut found: BTreeSet<String> = BTreeSet::new();
+
+    // Only scan from the Parameters section onwards (skip title, endpoint, description).
+    let scan_start = md.find("## Parameters").unwrap_or(0);
+    let scan_region = &md[scan_start..];
+
+    // Process line-by-line so we can skip markdown heading lines (## …).
+    // Headings like "## Status Codes" contain the word "Status" which is a
+    // known type but is not a reference — skip those lines.
+    for line in scan_region.lines() {
+        let trimmed = line.trim();
+        // Skip markdown headings (## Status Codes, ## Response Body Schema, etc.)
+        if trimmed.starts_with('#') {
+            continue;
+        }
+        // Tokenize the non-heading line.
+        for token in trimmed.split(|c: char| !c.is_alphanumeric() && c != '_') {
+            let first_char = token.chars().next();
+            if first_char.is_some_and(|c| c.is_uppercase()) && known_types.contains(token) {
+                found.insert(token.to_string());
+            }
+        }
+    }
+
+    found.into_iter().collect()
+}
+
+// ---------------------------------------------------------------------------
 // INVENTORY.md
 // ---------------------------------------------------------------------------
 
@@ -912,7 +1236,7 @@ struct InventoryRow {
     deprecated: bool,
 }
 
-fn render_inventory(rows: &[InventoryRow]) -> String {
+fn render_inventory(rows: &[InventoryRow], def_rows: &[(String, usize)]) -> String {
     let mut md = String::new();
     md.push_str("# Nordnet API v2 — Operation Inventory\n\n");
     md.push_str("Generated by `cargo xtask extract-docs`. Do not hand-edit.\n\n");
@@ -931,5 +1255,19 @@ fn render_inventory(rows: &[InventoryRow]) -> String {
         ));
     }
     md.push('\n');
+
+    // Definitions table.
+    md.push_str("## Definitions\n\n");
+    md.push_str(&format!(
+        "Total: {} type definitions extracted from the Definitions section.\n\n",
+        def_rows.len()
+    ));
+    md.push_str("| Type Name | Field Count |\n");
+    md.push_str("|-----------|-------------|\n");
+    for (type_name, field_count) in def_rows {
+        md.push_str(&format!("| {} | {} |\n", type_name, field_count));
+    }
+    md.push('\n');
+
     md
 }

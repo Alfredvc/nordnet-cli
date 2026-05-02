@@ -41,3 +41,9 @@ _(no example blocks in documentation HTML)_
 ## Doc inconsistencies
 
 _(none identified during Phase 1 extraction)_
+
+## Referenced types
+
+- [ApiKeyStartLoginRequest](../_definitions/ApiKeyStartLoginRequest.md)
+- [ChallengeResponse](../_definitions/ChallengeResponse.md)
+- [ErrorResponse](../_definitions/ErrorResponse.md)

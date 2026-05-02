@@ -1,0 +1,5 @@
+ops = ["verify_login"]
+request_fixture = true
+response_fixture = true
+fixture_provenance = "synthesized_from_schema"
+schema_source = "docs-extract/login/verify_login.md"

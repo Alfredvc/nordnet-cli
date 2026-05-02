@@ -1,0 +1,23 @@
+{
+  "ledgers": [
+    {
+      "acc_int_cred": {"currency": "SEK", "value": 0.0},
+      "acc_int_deb": {"currency": "SEK", "value": 0.0},
+      "account_sum": {"currency": "SEK", "value": 100000.0},
+      "account_sum_acc": {"currency": "SEK", "value": 100000.0},
+      "currency": "SEK",
+      "exchange_rate": {"currency": "SEK", "value": 1.0}
+    },
+    {
+      "acc_int_cred": {"currency": "EUR", "value": 0.50},
+      "acc_int_deb": {"currency": "EUR", "value": 0.0},
+      "account_sum": {"currency": "EUR", "value": 1000.0},
+      "account_sum_acc": {"currency": "SEK", "value": 11500.0},
+      "currency": "EUR",
+      "exchange_rate": {"currency": "SEK", "value": 11.5}
+    }
+  ],
+  "total": {"currency": "SEK", "value": 111500.0},
+  "total_acc_int_cred": {"currency": "SEK", "value": 5.75},
+  "total_acc_int_deb": {"currency": "SEK", "value": 0.0}
+}

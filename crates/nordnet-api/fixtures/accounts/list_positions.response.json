@@ -1,0 +1,40 @@
+[
+  {
+    "accid": 1,
+    "accno": 12345678,
+    "acq_price": {"currency": "SEK", "value": 95.50},
+    "acq_price_acc": {"currency": "SEK", "value": 95.50},
+    "instrument": {
+      "currency": "SEK",
+      "instrument_id": 16099583,
+      "instrument_type": "ESH",
+      "name": "Ericsson B",
+      "symbol": "ERIC B",
+      "isin_code": "SE0000108656"
+    },
+    "margin_percent": 100,
+    "market_value": {"currency": "SEK", "value": 10025.50},
+    "market_value_acc": {"currency": "SEK", "value": 10025.50},
+    "morning_price": {"currency": "SEK", "value": 100.00},
+    "pawn_percent": 80,
+    "qty": 100.0
+  },
+  {
+    "accno": 12345678,
+    "acq_price": {"currency": "USD", "value": 150.0},
+    "acq_price_acc": {"currency": "SEK", "value": 1650.0},
+    "instrument": {
+      "currency": "USD",
+      "instrument_id": 0,
+      "instrument_type": "ESH",
+      "name": "Apple Inc.",
+      "symbol": "AAPL"
+    },
+    "margin_percent": 50,
+    "market_value": {"currency": "USD", "value": 175.0},
+    "market_value_acc": {"currency": "SEK", "value": 1925.0},
+    "morning_price": {"currency": "USD", "value": 170.0},
+    "pawn_percent": 70,
+    "qty": -10.5
+  }
+]

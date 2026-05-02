@@ -1,0 +1,61 @@
+[
+  {
+    "accid": 1,
+    "accno": 12345678,
+    "account_credit": {"currency": "SEK", "value": 0.0},
+    "account_currency": "SEK",
+    "account_sum": {"currency": "SEK", "value": 100000.50},
+    "bonus_cash": {"currency": "SEK", "value": 250.0},
+    "buy_orders_value": {"currency": "SEK", "value": 0.0},
+    "collateral": {"currency": "SEK", "value": 0.0},
+    "credit_account_interest": {"currency": "SEK", "value": 1.25},
+    "credit_account_sum": {"currency": "SEK", "value": 5000.0},
+    "equity": {"currency": "SEK", "value": 105000.50},
+    "forward_sum": {"currency": "SEK", "value": 0.0},
+    "full_marketvalue": {"currency": "SEK", "value": 200000.00},
+    "future_sum": {"currency": "SEK", "value": 0.0},
+    "interest": {"currency": "SEK", "value": 0.0},
+    "intraday_credit": {"currency": "SEK", "value": 1000.0},
+    "loan_limit": {"currency": "SEK", "value": 50000.0},
+    "own_capital": {"currency": "SEK", "value": 100000.50},
+    "own_capital_morning": {"currency": "SEK", "value": 99500.00},
+    "pawn_value": {"currency": "SEK", "value": 75000.0},
+    "registration_date": "2018-04-15",
+    "reserved": {
+      "corporate_actions": {"currency": "SEK", "value": 0.0},
+      "fund_orders": {"currency": "SEK", "value": 0.0},
+      "monthly_savings_exchange_traded": {"currency": "SEK", "value": 0.0},
+      "other": {"currency": "SEK", "value": 0.0},
+      "total": {"currency": "SEK", "value": 0.0}
+    },
+    "short_positions_margin": {"currency": "SEK", "value": 0.0},
+    "trading_power": {"currency": "SEK", "value": 100000.50},
+    "unrealized_future_profit_loss": {"currency": "SEK", "value": 0.0}
+  },
+  {
+    "accno": 87654321,
+    "account_credit": {"currency": "EUR", "value": 0.0},
+    "account_currency": "EUR",
+    "account_sum": {"currency": "EUR", "value": 5000.0},
+    "buy_orders_value": {"currency": "EUR", "value": 0.0},
+    "collateral": {"currency": "EUR", "value": 0.0},
+    "equity": {"currency": "EUR", "value": 5000.0},
+    "forward_sum": {"currency": "EUR", "value": 0.0},
+    "full_marketvalue": {"currency": "EUR", "value": 0.0},
+    "future_sum": {"currency": "EUR", "value": 0.0},
+    "interest": {"currency": "EUR", "value": 0.0},
+    "loan_limit": {"currency": "EUR", "value": 0.0},
+    "own_capital": {"currency": "EUR", "value": 5000.0},
+    "own_capital_morning": {"currency": "EUR", "value": 5000.0},
+    "pawn_value": {"currency": "EUR", "value": 0.0},
+    "reserved": {
+      "corporate_actions": {"currency": "EUR", "value": 0.0},
+      "fund_orders": {"currency": "EUR", "value": 0.0},
+      "monthly_savings_exchange_traded": {"currency": "EUR", "value": 0.0},
+      "other": {"currency": "EUR", "value": 0.0},
+      "total": {"currency": "EUR", "value": 0.0}
+    },
+    "trading_power": {"currency": "EUR", "value": 5000.0},
+    "unrealized_future_profit_loss": {"currency": "EUR", "value": 0.0}
+  }
+]

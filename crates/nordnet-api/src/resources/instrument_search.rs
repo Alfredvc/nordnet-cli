@@ -55,9 +55,13 @@ fn with_query(path: &str, qs: &str) -> String {
 }
 
 /// Build the encoded query string from a list of `(name, optional value)`
-/// pairs. `None` values are skipped. Multi-value fields are flattened into
-/// repeated `name=value` pairs (mirrors how `reqwest` encodes a vec). All
-/// values are percent-encoded by `reqwest::Url::query_pairs_mut`.
+/// pairs. `None` values are skipped. Multi-value fields are joined with
+/// commas into a single `name=v1,v2,v3` pair — Swagger 2.0
+/// `collectionFormat=csv`, the format Nordnet's own JS client
+/// (`nordnet/nordnet-next-api`) emits and that the official docs
+/// describe ("Multiple inputs must be comma separated"). Empty
+/// multi-value lists are skipped. All values are percent-encoded by
+/// `reqwest::Url::query_pairs_mut` (commas become `%2C`).
 fn encode_pairs(pairs: &[(&str, Option<&str>)], multi: &[(&str, &[String])]) -> String {
     let mut url = match reqwest::Url::parse("http://_/") {
         Ok(u) => u,
@@ -74,9 +78,10 @@ fn encode_pairs(pairs: &[(&str, Option<&str>)], multi: &[(&str, &[String])]) -> 
             }
         }
         for (name, values) in multi {
-            for v in *values {
-                q.append_pair(name, v);
+            if values.is_empty() {
+                continue;
             }
+            q.append_pair(name, &values.join(","));
         }
     }
     url.query().unwrap_or("").to_owned()
@@ -404,7 +409,7 @@ mod tests {
         });
         assert_eq!(
             qs,
-            "apply_filters=nordnet_markets%3Dtrue&entity_type=STOCKLIST&only_filterable=true&only_returnable=false&attribute_group=PRICE_INFO&attribute_group=EXCHANGE_INFO&expand=market_id"
+            "apply_filters=nordnet_markets%3Dtrue&entity_type=STOCKLIST&only_filterable=true&only_returnable=false&attribute_group=PRICE_INFO%2CEXCHANGE_INFO&expand=market_id"
         );
     }
 
@@ -428,7 +433,7 @@ mod tests {
         });
         assert_eq!(
             qs,
-            "apply_filters=instrument_type%3DESH&free_text_search=erics&limit=25&offset=50&sort_attribute=name&sort_order=desc&attribute_groups=PRICE_INFO&attributes=name&attributes=isin"
+            "apply_filters=instrument_type%3DESH&free_text_search=erics&limit=25&offset=50&sort_attribute=name&sort_order=desc&attribute_groups=PRICE_INFO&attributes=name%2Cisin"
         );
     }
 

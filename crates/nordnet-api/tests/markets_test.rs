@@ -73,17 +73,6 @@ fn get_market_fixture_roundtrip() {
         serde_json::from_str(&re).expect("re-serialized must parse as Value");
     assert_eq!(canonical, re_canonical, "canonical roundtrip mismatch");
 }
-
-#[test]
-fn market_rejects_unknown_fields() {
-    let raw = r#"[{"country":"SE","market_id":11,"name":"Stockholm","extra":"oops"}]"#;
-    let result: Result<Vec<Market>, _> = serde_json::from_str(raw);
-    assert!(
-        result.is_err(),
-        "deny_unknown_fields should reject extra fields on Market"
-    );
-}
-
 // ---------------------------------------------------------------------------
 // Layer 2 — Wiremock integration tests
 // ---------------------------------------------------------------------------

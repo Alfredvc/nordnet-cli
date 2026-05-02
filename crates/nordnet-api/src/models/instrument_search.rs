@@ -65,7 +65,6 @@ use serde::{Deserialize, Serialize};
 ///
 /// Schema: `_definitions/FilterVal.md`. All fields are optional per the doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct FilterVal {
     /// The number of instruments or tradables which have this filter ID.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -83,7 +82,6 @@ pub struct FilterVal {
 /// Schema: `_definitions/FilterDetails.md`. All fields are optional per
 /// the doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct FilterDetails {
     /// Attribute ID.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -110,7 +108,6 @@ pub struct FilterDetails {
 /// `min` and `max` are `number(double)` and typed as [`Decimal`] per
 /// CONTRACTS.md; this prevents deriving [`Eq`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct AttributeResult {
     /// Additional details for attributes having `filterable=true`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -151,7 +148,6 @@ pub struct AttributeResult {
 /// Schema: `_definitions/AttributeResults.md`. `attributes_count` is the
 /// only required field.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct AttributeResults {
     /// Attribute search results.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -168,7 +164,6 @@ pub struct AttributeResults {
 ///
 /// Schema: `_definitions/ExchangeInfo.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct ExchangeInfo {
     /// Instrument trading country.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -181,7 +176,6 @@ pub struct ExchangeInfo {
 /// Structurally distinct from `crate::models::markets::Market` (Phase 3X
 /// reconciliation pending).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct MarketInfo {
     /// Market identifier (string form, e.g. `"XSTO"`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -202,7 +196,6 @@ pub struct MarketInfo {
 /// Schema: `_definitions/InstrumentInfo.md`. All fields optional per doc.
 /// `issuer_id` uses [`crate::ids::IssuerId`] (Phase 3X promotion).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct InstrumentInfo {
     /// Clearing place.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -264,7 +257,6 @@ pub struct InstrumentInfo {
 ///
 /// Schema: `_definitions/PriceWithDecimals.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct PriceWithDecimals {
     /// Number of decimals.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -282,7 +274,6 @@ pub struct PriceWithDecimals {
 ///
 /// Schema: `_definitions/DiffWithDecimals.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct DiffWithDecimals {
     /// Number of decimals.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -300,7 +291,6 @@ pub struct DiffWithDecimals {
 ///
 /// Schema: `_definitions/PriceInfo.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct PriceInfo {
     /// Ask price, top of book.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -376,7 +366,6 @@ pub struct PriceInfo {
 ///
 /// Schema: `_definitions/CompanyInfo.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct CompanyInfo {
     /// Upcoming dividend amount. `Decimal` per CONTRACTS.md.
     #[serde(
@@ -419,7 +408,6 @@ pub struct CompanyInfo {
 ///
 /// Schema: `_definitions/HistoricalReturnsInfo.md`. All fields optional.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct HistoricalReturnsInfo {
     /// Set to `true` if the historical returns information is based on a
     /// real-time snapshot.
@@ -487,7 +475,6 @@ pub struct HistoricalReturnsInfo {
 ///
 /// Schema: `_definitions/KeyRatiosInfo.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct KeyRatiosInfo {
     /// Dividend per share.
     #[serde(
@@ -537,7 +524,6 @@ pub struct KeyRatiosInfo {
 ///
 /// Schema: `_definitions/StatisticalInfo.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct StatisticalInfo {
     /// Number of Nordnet customers with positions in the instrument.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -551,7 +537,6 @@ pub struct StatisticalInfo {
 ///
 /// Schema: `_definitions/Stocklist.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct Stocklist {
     /// Company information.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -583,7 +568,6 @@ pub struct Stocklist {
 ///
 /// Schema: `_definitions/StocklistResults.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct StocklistResults {
     /// Stock search results.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -605,7 +589,6 @@ pub struct StocklistResults {
 /// Schema: `_definitions/CertificateInfo.md`. All fields optional per doc.
 /// `static_leverage` is `number(double)` and typed as [`Decimal`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct CertificateInfo {
     /// High-risk (static).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -623,7 +606,6 @@ pub struct CertificateInfo {
 ///
 /// Schema: `_definitions/EtpInfo.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct EtpInfo {
     /// Certificate direction; localized.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -650,7 +632,6 @@ pub struct EtpInfo {
 /// Schema: `_definitions/KoCalcInfo.md`. All fields optional per doc.
 /// `ko_calc_conversion_ratio` is `number(double)` -> [`Decimal`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct KoCalcInfo {
     /// The conversion ratio. `Decimal` per CONTRACTS.md.
     #[serde(
@@ -674,7 +655,6 @@ pub struct KoCalcInfo {
 ///
 /// Schema: `_definitions/KoInfo.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct KoInfo {
     /// Financial level (strike price). `Decimal` per CONTRACTS.md.
     #[serde(
@@ -696,7 +676,6 @@ pub struct KoInfo {
 ///
 /// Schema: `_definitions/PriceKoInfo.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct PriceKoInfo {
     /// High-risk (indicative).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -721,7 +700,6 @@ pub struct PriceKoInfo {
 ///
 /// Schema: `_definitions/BullBearEntity.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct BullBearEntity {
     /// Certificate information.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -749,7 +727,6 @@ pub struct BullBearEntity {
 /// doc. `underlying_instrument_id` is the only field at this level (it
 /// uses `integer(int64)`, mapped to [`InstrumentId`]).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct BullBearListResults {
     /// Bull & Bear search results.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -769,7 +746,6 @@ pub struct BullBearListResults {
 ///
 /// Schema: `_definitions/MinifutureEntity.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct MinifutureEntity {
     /// ETP information.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -801,7 +777,6 @@ pub struct MinifutureEntity {
 ///
 /// Schema: `_definitions/MinifutureListResults.md`. All fields optional.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct MinifutureListResults {
     /// Mini Future search results.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -821,7 +796,6 @@ pub struct MinifutureListResults {
 ///
 /// Schema: `_definitions/UnlimitedTurboEntity.md`. All fields optional.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct UnlimitedTurboEntity {
     /// ETP information.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -853,7 +827,6 @@ pub struct UnlimitedTurboEntity {
 ///
 /// Schema: `_definitions/UnlimitedTurboListResults.md`. All fields optional.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct UnlimitedTurboListResults {
     /// Unlimited Turbo search results.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -877,7 +850,6 @@ pub struct UnlimitedTurboListResults {
 ///
 /// Schema: `_definitions/DerivativeInfo.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct DerivativeInfo {
     /// Derivative contract multiplier.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -895,7 +867,6 @@ pub struct DerivativeInfo {
 /// Schema: `_definitions/OptionInfo.md`. All fields optional per doc.
 /// `risk_free_interest` and `strike_price` are bare `number` -> [`Decimal`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct OptionInfo {
     /// Option exercise type.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -927,7 +898,6 @@ pub struct OptionInfo {
 ///
 /// Schema: `_definitions/OptionlistEntity.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct OptionlistEntity {
     /// Derivative information.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -954,7 +924,6 @@ pub struct OptionlistEntity {
 /// Schema: `_definitions/OptionlistPair.md`. All fields are required.
 /// `strike_price` is bare `number` -> [`Decimal`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct OptionlistPair {
     /// Call option leg.
     pub call_option: OptionlistEntity,
@@ -971,7 +940,6 @@ pub struct OptionlistPair {
 /// Schema: `_definitions/OptionListResults.md`. All fields are required
 /// per the doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct OptionListResults {
     /// Option Pair search results.
     pub results: Vec<OptionlistPair>,

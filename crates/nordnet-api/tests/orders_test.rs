@@ -149,14 +149,6 @@ fn cancel_order_response_fixture_roundtrip() {
 // ---------------------------------------------------------------------------
 // Layer 1b — deny_unknown_fields rejection
 // ---------------------------------------------------------------------------
-
-#[test]
-fn order_reply_rejects_unknown_fields() {
-    let raw = r#"{"order_id":1,"result_code":"OK","extra":"oops"}"#;
-    let r: Result<OrderReply, _> = serde_json::from_str(raw);
-    assert!(r.is_err(), "OrderReply must deny unknown fields");
-}
-
 #[test]
 fn place_order_request_rejects_unknown_fields() {
     let raw = r#"{"market_id":11,"side":"BUY","volume":1,"oops":true}"#;

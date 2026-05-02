@@ -65,7 +65,6 @@ use serde::{Deserialize, Serialize};
 /// Schema: `_definitions/KeyInformationDocuments.md`. All fields are
 /// optional per the doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct KeyInformationDocuments {
     /// URL to a Combined KID document.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -87,7 +86,6 @@ pub struct KeyInformationDocuments {
 /// variant preserves the typo to keep the legacy nature self-documenting
 /// at the use site (the wire field name is identical).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct UnderlyingInfo {
     /// Unique identifier of the underlying instrument (canonical field).
     pub instrument_id: InstrumentId,
@@ -109,7 +107,6 @@ pub struct UnderlyingInfo {
 /// `lot_size` is `number(double)` — typed as [`Decimal`] per CONTRACTS.md.
 /// As a result this type cannot derive [`Eq`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct Tradable {
     /// Determines the display order of the tradables for an instrument.
     pub display_order: i64,
@@ -138,7 +135,6 @@ pub struct Tradable {
 /// `number(double)` and are typed as [`Decimal`] — as a result this type
 /// cannot derive [`Eq`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct Instrument {
     /// Asset class key word.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -265,7 +261,6 @@ pub struct Instrument {
 ///
 /// Schema: `_definitions/InstrumentType.md`. All fields are required.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct InstrumentType {
     /// The instrument type code.
     pub instrument_type: String,
@@ -281,7 +276,6 @@ pub struct InstrumentType {
 /// other `instrument_id` in the API is `integer(int64)`. We keep the uniform
 /// [`InstrumentId`] (`i64`) newtype — see module doc note.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct InstrumentEligibility {
     /// `true` if the customer is eligible to trade the instrument.
     pub eligible: bool,
@@ -295,7 +289,6 @@ pub struct InstrumentEligibility {
 ///
 /// Cannot derive [`Eq`] because `price` is a `Decimal`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct PublicTrade {
     /// Buying participant. Optional per the schema.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -329,7 +322,6 @@ pub struct PublicTrade {
 /// `Decimal`. `instrument_id` is documented as `integer(int32)` — see
 /// module doc note.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct InstrumentPublicTrades {
     /// The unique instrument ID.
     pub instrument_id: InstrumentId,
@@ -341,7 +333,6 @@ pub struct InstrumentPublicTrades {
 ///
 /// Schema: `_definitions/Issuer.md`. Both fields are required.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct Issuer {
     /// Unique issuer ID.
     pub issuer_id: IssuerId,
@@ -353,7 +344,6 @@ pub struct Issuer {
 ///
 /// Schema: `_definitions/LeverageFilter.md`. All fields are required.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct LeverageFilter {
     /// List of valid currencies.
     pub currencies: Vec<String>,

@@ -82,7 +82,6 @@ pub use crate::models::shared::AmountWithCurrency as Amount;
 ///
 /// Schema: `_definitions/Account.md`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct Account {
     /// The account identifier. Optional per schema (not applicable for
     /// partners).
@@ -116,7 +115,6 @@ pub struct Account {
 ///
 /// Cannot derive [`Eq`] because the nested [`Amount::value`] is a `Decimal`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct Reserved {
     /// Reserved trading power for corporate actions.
     pub corporate_actions: Amount,
@@ -136,7 +134,6 @@ pub struct Reserved {
 ///
 /// Cannot derive [`Eq`] because nested [`Amount`] values use `Decimal`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct AccountInfo {
     /// The account identifier. Optional per schema.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -214,7 +211,6 @@ pub struct AccountInfo {
 ///
 /// Cannot derive [`Eq`] because nested [`Amount`] values use `Decimal`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct Ledger {
     /// The interest credit in the ledger currency.
     pub acc_int_cred: Amount,
@@ -236,7 +232,6 @@ pub struct Ledger {
 ///
 /// Cannot derive [`Eq`] because nested [`Amount`] values use `Decimal`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct LedgerInformation {
     /// The list of all ledgers.
     pub ledgers: Vec<Ledger>,
@@ -254,7 +249,6 @@ pub struct LedgerInformation {
 ///
 /// Cannot derive [`Eq`] because the nested [`Amount::value`] is a `Decimal`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct AccountTransactionsToday {
     /// Transaction amounts today.
     pub transactions: Amount,
@@ -271,7 +265,6 @@ pub struct AccountTransactionsToday {
 /// Cannot derive [`Eq`] because several `number(double)` fields are
 /// typed as `Decimal`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct PositionInstrument {
     /// Asset class key word.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -365,7 +358,6 @@ pub struct PositionInstrument {
 /// Cannot derive [`Eq`] because `qty` is a `Decimal` and the nested
 /// [`Amount`] values are `Decimal`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct Position {
     /// The account identifier. Optional per schema.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -404,7 +396,6 @@ pub struct Position {
 /// documented field shape round-trips correctly while retaining the
 /// strongly-typed identifier.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
-#[serde(deny_unknown_fields)]
 pub struct TradableRef {
     /// The Nordnet tradable identifier.
     pub identifier: TradableId,
@@ -419,7 +410,6 @@ pub struct TradableRef {
 /// Cannot derive [`Eq`] because `volume` is a `Decimal` and nested
 /// [`Amount`] values are `Decimal`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct Trade {
     /// The account identifier. Optional per schema.
     #[serde(default, skip_serializing_if = "Option::is_none")]

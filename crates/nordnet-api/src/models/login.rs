@@ -44,7 +44,6 @@ pub struct ApiKeyStartLoginRequest {
 ///
 /// Schema: `docs-extract/_definitions/ChallengeResponse.md`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct ChallengeResponse {
     /// The challenge string the caller must sign with their private key.
     /// Valid for 30 seconds only.
@@ -70,7 +69,6 @@ pub struct ApiKeyVerifyLoginRequest {
 ///
 /// Schema: `docs-extract/_definitions/Feed.md`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct Feed {
     /// `true` if the feed is encrypted (TLS).
     pub encrypted: bool,
@@ -88,7 +86,6 @@ pub struct Feed {
 /// foundation version types `private_feed` / `public_feed` as raw
 /// [`serde_json::Value`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct ApiKeyLoginResponse {
     /// The session expiration interval in seconds. This is the entire
     /// interval — not the remaining time until session time-out.
@@ -125,7 +122,6 @@ impl From<&ApiKeyLoginResponse> for Session {
 ///
 /// Schema: `docs-extract/_definitions/LoggedInStatus.md`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct LoggedInStatus {
     /// `true` if the session is valid.
     pub logged_in: bool,

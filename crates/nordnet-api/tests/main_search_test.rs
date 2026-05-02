@@ -14,8 +14,7 @@
 
 use nordnet_api::ids::{InstrumentId, MarketId, TickSizeId};
 use nordnet_api::models::main_search::{
-    EtpInfo, KoInfo, MainSearchResponse, MainSearchResponseRow, MarketInfo, PriceKoInfo,
-    PriceWithDecimals, StatusInfo,
+    EtpInfo, KoInfo, MainSearchResponse, MarketInfo, PriceKoInfo, PriceWithDecimals, StatusInfo,
 };
 use nordnet_api::{Client, Error};
 use pretty_assertions::assert_eq;
@@ -172,35 +171,6 @@ fn optional_decimal_precision_survives_roundtrip() {
 // ---------------------------------------------------------------------------
 // Layer 2 — deny_unknown_fields rejection
 // ---------------------------------------------------------------------------
-
-#[test]
-fn main_search_response_rejects_unknown_fields() {
-    let raw = r#"[{
-        "display_group_description": "Equities",
-        "display_group_type": "EQUITY",
-        "results": [],
-        "extra": "nope"
-    }]"#;
-    let r: Result<Vec<MainSearchResponse>, _> = serde_json::from_str(raw);
-    assert!(
-        r.is_err(),
-        "deny_unknown_fields must reject extra fields on MainSearchResponse"
-    );
-}
-
-#[test]
-fn main_search_response_row_rejects_unknown_fields() {
-    let raw = r#"{
-        "display_name": "X",
-        "extra_field": true
-    }"#;
-    let r: Result<MainSearchResponseRow, _> = serde_json::from_str(raw);
-    assert!(
-        r.is_err(),
-        "deny_unknown_fields must reject extra fields on MainSearchResponseRow"
-    );
-}
-
 // ---------------------------------------------------------------------------
 // Layer 3 — Wiremock integration
 // ---------------------------------------------------------------------------

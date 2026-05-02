@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 ///
 /// Schema source: `docs-extract/_definitions/Country.md`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct Country {
     /// ISO country code (e.g. `"SE"`, `"NO"`).
     pub country: String,

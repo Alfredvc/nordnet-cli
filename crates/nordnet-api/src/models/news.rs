@@ -84,7 +84,6 @@ impl From<NewsSourceId> for i64 {
 ///
 /// Schema source: `docs-extract/_definitions/NewsArticle.md`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct NewsArticle {
     /// Article body. Optional per schema.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -146,7 +145,6 @@ pub struct NewsArticle {
 ///
 /// Schema source: `docs-extract/_definitions/NewsSource.md`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct NewsSource {
     /// List containing the country codes affected by the news source.
     /// Optional per schema.

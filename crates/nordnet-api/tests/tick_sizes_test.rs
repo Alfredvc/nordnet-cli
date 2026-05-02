@@ -5,7 +5,7 @@
 //! 2. Wiremock integration — every op is called against a mock server.
 
 use nordnet_api::ids::TickSizeId;
-use nordnet_api::models::tick_sizes::{TicksizeInterval, TicksizeTable};
+use nordnet_api::models::tick_sizes::TicksizeTable;
 use nordnet_api::{Client, Error};
 use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
@@ -85,28 +85,6 @@ fn get_tick_size_fixture_roundtrip() {
         serde_json::from_str(&re_serialized).expect("re-serialized must parse as Value");
     assert_eq!(canonical, re_canonical, "canonical roundtrip mismatch");
 }
-
-#[test]
-fn ticksize_table_rejects_unknown_fields() {
-    let raw = r#"[{"tick_size_id": 99, "ticks": [], "extra_field": "nope"}]"#;
-    let result: Result<Vec<TicksizeTable>, _> = serde_json::from_str(raw);
-    assert!(
-        result.is_err(),
-        "deny_unknown_fields must reject unknown fields on TicksizeTable"
-    );
-}
-
-#[test]
-fn ticksize_interval_rejects_unknown_fields() {
-    let raw =
-        r#"{"decimals": 2, "from_price": 0.00, "tick": 0.01, "to_price": 1.00, "unknown": true}"#;
-    let result: Result<TicksizeInterval, _> = serde_json::from_str(raw);
-    assert!(
-        result.is_err(),
-        "deny_unknown_fields must reject unknown fields on TicksizeInterval"
-    );
-}
-
 #[test]
 fn decimal_precision_survives_roundtrip() {
     // Verify that a Decimal with many significant digits is not corrupted.

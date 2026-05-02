@@ -18,7 +18,6 @@ use serde::{Deserialize, Serialize};
 /// All price and tick fields use [`Decimal`] instead of `f64` per
 /// CONTRACTS.md ("Never `f64`").
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct TicksizeInterval {
     /// Number of decimals used in this interval.
     pub decimals: i64,
@@ -37,7 +36,6 @@ pub struct TicksizeInterval {
 ///
 /// Corresponds to the `TicksizeTable` definition in the Nordnet API docs.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct TicksizeTable {
     /// The unique tick size table ID.
     pub tick_size_id: TickSizeId,

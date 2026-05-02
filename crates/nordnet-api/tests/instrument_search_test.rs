@@ -236,49 +236,6 @@ fn search_optionlist_pairs_fixture_roundtrip() {
 // ---------------------------------------------------------------------------
 // Layer 2 — deny_unknown_fields rejection
 // ---------------------------------------------------------------------------
-
-#[test]
-fn attribute_results_rejects_unknown_fields() {
-    let raw = r#"{
-        "attributes_count": 0,
-        "extra": "nope"
-    }"#;
-    let r: Result<AttributeResults, _> = serde_json::from_str(raw);
-    assert!(
-        r.is_err(),
-        "deny_unknown_fields must reject extra fields on AttributeResults"
-    );
-}
-
-#[test]
-fn stocklist_results_rejects_unknown_fields() {
-    let raw = r#"{
-        "rows": 0,
-        "total_hits": 0,
-        "extra": "nope"
-    }"#;
-    let r: Result<StocklistResults, _> = serde_json::from_str(raw);
-    assert!(
-        r.is_err(),
-        "deny_unknown_fields must reject extra fields on StocklistResults"
-    );
-}
-
-#[test]
-fn option_list_results_rejects_unknown_fields() {
-    let raw = r#"{
-        "results": [],
-        "rows": 0,
-        "total_hits": 0,
-        "extra": "nope"
-    }"#;
-    let r: Result<OptionListResults, _> = serde_json::from_str(raw);
-    assert!(
-        r.is_err(),
-        "deny_unknown_fields must reject extra fields on OptionListResults"
-    );
-}
-
 // ---------------------------------------------------------------------------
 // Layer 3 — Wiremock integration
 // ---------------------------------------------------------------------------

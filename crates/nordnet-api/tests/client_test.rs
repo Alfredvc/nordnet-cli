@@ -152,16 +152,16 @@ async fn authorization_header_uses_session_key_basic() {
 
 #[tokio::test]
 async fn login_flow_start_sign_verify_against_mock() {
-    use nordnet_api::auth::parse_private_key_pem;
-    use rsa::pkcs8::{EncodePrivateKey, LineEnding};
+    use nordnet_api::auth::parse_private_key_openssh;
+    use ssh_key::{private::Ed25519Keypair, LineEnding, PrivateKey};
 
-    // Build a deterministic key + serialize PEM so the test mirrors how
-    // a real caller would load credentials from disk.
-    use rand_chacha::rand_core::SeedableRng;
-    let mut rng = rand_chacha::ChaCha20Rng::from_seed([3u8; 32]);
-    let key = rsa::RsaPrivateKey::new(&mut rng, 2048).unwrap();
-    let pem = key.to_pkcs8_pem(LineEnding::LF).unwrap();
-    let parsed = parse_private_key_pem(&pem).unwrap();
+    // Build a deterministic Ed25519 key from a fixed seed and serialize
+    // it as OpenSSH PEM so the test mirrors how a real caller would
+    // load credentials from disk (a file produced by `ssh-keygen`).
+    let kp = Ed25519Keypair::from_seed(&[3u8; 32]);
+    let pk = PrivateKey::from(kp);
+    let pem = pk.to_openssh(LineEnding::LF).unwrap();
+    let parsed = parse_private_key_openssh(&pem).unwrap();
     let api_key = "demo-api-key";
     let challenge = "ch4ll3ng3";
     let signature = sign_challenge(&parsed, challenge).unwrap();

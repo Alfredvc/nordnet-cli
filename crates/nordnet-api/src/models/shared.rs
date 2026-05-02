@@ -20,7 +20,6 @@ use time::OffsetDateTime;
 ///
 /// `code` is required, `message` is optional (and human-translated).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct ErrorResponse {
     pub code: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -57,7 +56,6 @@ impl From<&str> for Currency {
 /// in a later doc revision; removing it would require coordinated edits to
 /// the foundation lock.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct Money {
     #[serde(with = "rust_decimal::serde::arbitrary_precision")]
     pub amount: Decimal,
@@ -85,7 +83,6 @@ pub struct Amount(#[serde(with = "rust_decimal::serde::arbitrary_precision")] pu
 /// Cannot derive [`Eq`] because `value` is a `Decimal` carried under the
 /// `arbitrary_precision` adapter (`PartialEq` only).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct AmountWithCurrency {
     /// The amount currency.
     pub currency: Currency,
@@ -261,13 +258,6 @@ mod tests {
         // Serialization should omit `message` because we set
         // `skip_serializing_if = Option::is_none`.
         assert_eq!(serde_json::to_string(&parsed).unwrap(), raw);
-    }
-
-    #[test]
-    fn error_response_rejects_unknown_fields() {
-        let raw = r#"{"code":"X","extra":"y"}"#;
-        let r: Result<ErrorResponse, _> = serde_json::from_str(raw);
-        assert!(r.is_err());
     }
 
     #[test]

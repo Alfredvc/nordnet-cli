@@ -24,7 +24,7 @@
 
 use anyhow::Context;
 use clap::Subcommand;
-use nordnet_api::auth::{parse_private_key_pem, sign_challenge, Session};
+use nordnet_api::auth::{parse_private_key_openssh, sign_challenge, Session};
 use nordnet_api::models::login::{ApiKeyStartLoginRequest, ApiKeyVerifyLoginRequest};
 use serde_json::json;
 use time::OffsetDateTime;
@@ -81,9 +81,9 @@ async fn run_login(client: &nordnet_api::Client, fields: &[String]) -> anyhow::R
     let api_key = cfg.require_api_key()?;
     let key_path = cfg.require_key_path()?;
 
-    let pem = std::fs::read_to_string(key_path)
-        .with_context(|| format!("could not read PEM at {}", key_path.display()))?;
-    let parsed = parse_private_key_pem(&pem)?;
+    let key_text = std::fs::read_to_string(key_path)
+        .with_context(|| format!("could not read SSH key at {}", key_path.display()))?;
+    let parsed = parse_private_key_openssh(&key_text)?;
 
     let challenge = client
         .start_login(&ApiKeyStartLoginRequest {

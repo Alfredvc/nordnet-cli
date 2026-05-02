@@ -65,17 +65,6 @@ fn get_country_fixture_roundtrip() {
         serde_json::from_str(&serde_json::to_string(&parsed).unwrap()).unwrap();
     assert_eq!(serialized, canonical);
 }
-
-#[test]
-fn country_rejects_unknown_fields() {
-    let raw = r#"[{"country": "SE", "name": "Sweden", "extra": "oops"}]"#;
-    let result: Result<Vec<Country>, _> = serde_json::from_str(raw);
-    assert!(
-        result.is_err(),
-        "deny_unknown_fields should reject extra fields"
-    );
-}
-
 // ---------------------------------------------------------------------------
 // Layer 2 — Wiremock integration tests
 // ---------------------------------------------------------------------------

@@ -79,7 +79,6 @@ pub use crate::models::shared::AmountWithCurrency as OrderAmount;
 /// `tradables::TradableKey` value (which renders as `market_id:identifier`
 /// for path slots) is unrelated and lives in its own module.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct OrderTradable {
     /// The Nordnet tradable identifier.
     pub identifier: TradableId,
@@ -96,7 +95,6 @@ pub struct OrderTradable {
 /// schema; modelled as `Decimal` per CONTRACTS.md, so this struct cannot
 /// derive [`Eq`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct ActivationCondition {
     /// The fix point that the trigger_value and target_value percent is
     /// calculated from. Only used when type is `STOP_ACTPRICE_PERC`.
@@ -150,7 +148,6 @@ pub enum ActivationConditionType {
 ///
 /// Schema: `_definitions/Validity.md`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct Validity {
     /// Validity type. Wire field name is `type`.
     #[serde(rename = "type")]
@@ -266,7 +263,6 @@ pub enum VolumeCondition {
 /// `open_volume`, `traded_volume`, `volume`, `price.amount` and the nested
 /// `activation_condition` numeric fields are `Decimal`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct Order {
     /// The account identifier. Optional per the schema (not applicable for
     /// partners).
@@ -329,7 +325,6 @@ pub struct Order {
 /// are required; `action_state`, `order_state`, and `message` are
 /// optional.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct OrderReply {
     /// The action state. Can be missing if the order fails the
     /// prevalidation and never enters the order system.

@@ -185,57 +185,6 @@ fn public_trade_decimal_precision_survives_roundtrip() {
 // ---------------------------------------------------------------------------
 // Layer 2 — deny_unknown_fields rejection
 // ---------------------------------------------------------------------------
-
-#[test]
-fn tradable_info_rejects_unknown_fields() {
-    let raw = r#"[{
-        "calendar": [],
-        "iceberg": false,
-        "identifier": "101",
-        "market_id": 11,
-        "order_types": [],
-        "extra": "nope"
-    }]"#;
-    let r: Result<Vec<TradableInfo>, _> = serde_json::from_str(raw);
-    assert!(
-        r.is_err(),
-        "deny_unknown_fields must reject extra fields on TradableInfo"
-    );
-}
-
-#[test]
-fn tradable_eligibility_rejects_unknown_fields() {
-    let raw = r#"[{
-        "eligible": true,
-        "identifier": "101",
-        "market_id": 11,
-        "extra": "nope"
-    }]"#;
-    let r: Result<Vec<TradableEligibility>, _> = serde_json::from_str(raw);
-    assert!(
-        r.is_err(),
-        "deny_unknown_fields must reject extra fields on TradableEligibility"
-    );
-}
-
-#[test]
-fn public_trade_rejects_unknown_fields() {
-    let raw = r#"{
-        "market_id": 11,
-        "price": 1.0,
-        "tick_timestamp": 0,
-        "trade_id": "X",
-        "trade_timestamp": 0,
-        "volume": 1,
-        "extra": "nope"
-    }"#;
-    let r: Result<PublicTrade, _> = serde_json::from_str(raw);
-    assert!(
-        r.is_err(),
-        "deny_unknown_fields must reject extra fields on PublicTrade"
-    );
-}
-
 // ---------------------------------------------------------------------------
 // Layer 3 — Wiremock integration
 // ---------------------------------------------------------------------------

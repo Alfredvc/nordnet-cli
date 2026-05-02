@@ -78,7 +78,6 @@ impl std::fmt::Display for TradableKey {
 /// `open` and `close` are UNIX-millisecond epoch timestamps (see module
 /// doc note); `date` is a `YYYY-MM-DD` string (see module doc note).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct CalendarDay {
     /// The market closing time. UNIX timestamp in milliseconds.
     pub close: i64,
@@ -103,7 +102,6 @@ pub struct CalendarDay {
 /// The wire field `type` is a Rust keyword — exposed as `r#type` with
 /// `#[serde(rename = "type")]`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct AllowedOrderType {
     /// The translated order type.
     pub name: String,
@@ -117,7 +115,6 @@ pub struct AllowedOrderType {
 ///
 /// Schema: `_definitions/TradableInfo.md`. All fields are required.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct TradableInfo {
     /// Allowed days for long term orders.
     pub calendar: Vec<CalendarDay>,
@@ -139,7 +136,6 @@ pub struct TradableInfo {
 /// Cannot derive [`Eq`] because `price` is a `Decimal` (which only
 /// implements `PartialEq` after the `arbitrary_precision` adapter).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct PublicTrade {
     /// Buying participant. Optional per the schema.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -170,7 +166,6 @@ pub struct PublicTrade {
 /// Schema: `_definitions/TradablePublicTrades.md`. Cannot derive [`Eq`]
 /// because the nested [`PublicTrade::price`] is a `Decimal`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct TradablePublicTrades {
     /// The tradable identifier. The combination of market ID and tradable
     /// identifier is unique.
@@ -189,7 +184,6 @@ pub struct TradablePublicTrades {
 /// other `market_id` in the API is `integer(int64)`. We keep the uniform
 /// [`MarketId`] (`i64`) newtype — see module doc note.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct TradableEligibility {
     /// `true` if the customer is eligible to trade the tradable.
     pub eligible: bool,

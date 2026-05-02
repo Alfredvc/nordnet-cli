@@ -48,7 +48,6 @@ use serde::{Deserialize, Serialize};
 /// Schema: `_definitions/PriceWithDecimals.md`. Both fields are optional
 /// per the doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct PriceWithDecimals {
     /// Number of decimals.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -66,7 +65,6 @@ pub struct PriceWithDecimals {
 ///
 /// Schema: `_definitions/EtpInfo.md`. All fields are optional per the doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct EtpInfo {
     /// Certificate direction; localized.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -93,7 +91,6 @@ pub struct EtpInfo {
 ///
 /// Schema: `_definitions/KoInfo.md`. All fields are optional per the doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct KoInfo {
     /// Financial level (strike price). `Decimal` per CONTRACTS.md.
     #[serde(
@@ -117,7 +114,6 @@ pub struct KoInfo {
 /// doc. Note this is structurally distinct from `crate::models::markets::Market`
 /// (which is what `GET /markets` returns); reconciliation belongs in Phase 3X.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct MarketInfo {
     /// Market identifier (string form, e.g. `"XSTO"`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -139,7 +135,6 @@ pub struct MarketInfo {
 /// Schema: `_definitions/PriceKoInfo.md`. All fields are optional per the
 /// doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct PriceKoInfo {
     /// High-risk (indicative).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -165,7 +160,6 @@ pub struct PriceKoInfo {
 /// Schema: `_definitions/StatusInfo.md`. All fields are optional per the
 /// doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct StatusInfo {
     /// The last tick timestamp (UNIX millis per Nordnet convention).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -184,7 +178,6 @@ pub struct StatusInfo {
 /// Schema: `_definitions/MainSearchResponseRow.md`. The doc table marks
 /// every field except `display_name` as optional.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct MainSearchResponseRow {
     /// News agency.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -348,7 +341,6 @@ pub struct MainSearchResponseRow {
 /// returns `Vec<MainSearchResponse>` — one entry per result group (e.g.
 /// equities, news, pages).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct MainSearchResponse {
     /// Result group data description.
     pub display_group_description: String,

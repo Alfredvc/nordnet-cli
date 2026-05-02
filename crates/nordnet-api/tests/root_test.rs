@@ -36,23 +36,6 @@ fn fixture_round_trip() {
         serde_json::from_str(&re_serialized).expect("re-serialized value is valid JSON");
     assert_eq!(original_val, round_trip_val);
 }
-
-#[test]
-fn status_rejects_unknown_fields() {
-    let bad = r#"{
-      "message": "ok",
-      "system_running": true,
-      "timestamp": 1000,
-      "valid_version": true,
-      "extra": "should fail"
-    }"#;
-    let result: Result<Status, _> = serde_json::from_str(bad);
-    assert!(
-        result.is_err(),
-        "deny_unknown_fields must reject extra field"
-    );
-}
-
 // ---------------------------------------------------------------------------
 // Wiremock integration
 // ---------------------------------------------------------------------------

@@ -115,43 +115,6 @@ fn list_news_sources_fixture_roundtrip() {
         serde_json::from_str(&re).expect("re-serialized must parse as Value");
     assert_eq!(canonical, re_canonical, "canonical roundtrip mismatch");
 }
-
-#[test]
-fn news_article_rejects_unknown_fields() {
-    let raw = r#"[{
-        "headline": "x",
-        "lang": "en",
-        "markdown_format": false,
-        "news_id": 1,
-        "news_type": "NEWS",
-        "source_id": 1,
-        "timestamp": 0,
-        "type": "NEWS",
-        "version": 1,
-        "extra": "oops"
-    }]"#;
-    let result: Result<Vec<NewsArticle>, _> = serde_json::from_str(raw);
-    assert!(
-        result.is_err(),
-        "deny_unknown_fields should reject extra fields on NewsArticle"
-    );
-}
-
-#[test]
-fn news_source_rejects_unknown_fields() {
-    let raw = r#"[{
-        "level": "REALTIME",
-        "name": "x",
-        "source_id": 1,
-        "extra": "oops"
-    }]"#;
-    let result: Result<Vec<NewsSource>, _> = serde_json::from_str(raw);
-    assert!(
-        result.is_err(),
-        "deny_unknown_fields should reject extra fields on NewsSource"
-    );
-}
-
 // ---------------------------------------------------------------------------
 // Newtype transparency tests
 // ---------------------------------------------------------------------------

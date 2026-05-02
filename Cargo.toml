@@ -30,10 +30,13 @@ clap = { version = "4.6.1", features = ["derive", "env"] }
 thiserror = "2.0.18"
 anyhow = "1.0.102"
 
-# Crypto for SSH-key login flow
-# rsa 0.9 requires sha2 0.10.x — must pin sha2 to 0.10 line
-rsa = { version = "0.9.10", features = ["sha2"] }
-sha2 = "0.10.9"
+# Crypto for SSH-key login flow.
+# Nordnet's external API v2 uses Ed25519 (per their official
+# `nordnet/next-api-v2-examples` repo, Sep 2025). Keys are loaded from
+# OpenSSH format via `ssh-key`, then converted to `ed25519-dalek`
+# `SigningKey` for raw EdDSA signing of the challenge.
+ed25519-dalek = "2.2.0"
+ssh-key = { version = "0.6.7", default-features = false, features = ["alloc", "ed25519"] }
 base64 = "0.22.1"
 
 # Domain types
@@ -47,8 +50,6 @@ dirs = "6.0.0"
 # Test-only
 wiremock = "0.6.5"
 pretty_assertions = "1.4.1"
-# rand_chacha pinned to 0.3 to match rsa 0.9's rand_core 0.6 line.
-rand_chacha = "0.3.1"
 
 [profile.release]
 lto = "thin"

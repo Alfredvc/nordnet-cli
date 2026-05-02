@@ -568,4 +568,21 @@ Targeted fixes after pipeline closed. Each entry is a standalone commit, not par
 | `client`: drop auto-retry on 429/503 | `039a04c` | Caller decides backoff; client returns `Error::RateLimited`/`Error::ServiceUnavailable` directly. |
 | `cli`: atomic 0600 session save | `58d807f` | Closes secret-leak race when `~/.nordnet/session.toml` is rewritten under concurrent reads. |
 | `auth`: refresh-without-`expires_in` assumption | `962df91` | Doc-only — records that refresh response may omit `expires_in`; we keep the previous TTL. |
-| `tradables::OrderType` → `AllowedOrderType` | (this commit) | Removes name collision with `orders::OrderType` (closed request enum). The tradables type is the per-instrument `(name, type)` capability pair; the orders type is the wire enum. WIP rename was carried in via merge `1d05ac3`; this commit completes it (fmt fix on import order in `tests/tradables_test.rs`) and documents the change. |
+| `tradables::OrderType` → `AllowedOrderType` | `fc0e327` | Removes name collision with `orders::OrderType` (closed request enum). The tradables type is the per-instrument `(name, type)` capability pair; the orders type is the wire enum. WIP rename was carried in via merge `1d05ac3`; this commit completes it (fmt fix on import order in `tests/tradables_test.rs`) and documents the change. |
+| `auth`: RSA → Ed25519 (real signature scheme) | (this commit) | The pipeline shipped with PKCS#1 v1.5 + SHA-256 + an `auth=encrypted_creds` field, which targeted a deprecated pre-2018 endpoint. The current Nordnet External API v2 uses pure **Ed25519** over the raw UTF-8 bytes of the challenge, with **no** encrypted-credentials field — verified against `nordnet/next-api-v2-examples/python3/sign.py` (Sep 2025) and the official "Getting Started" docs. Workspace deps swap `rsa`+`sha2`+`rand_chacha` for `ed25519-dalek`+`ssh-key`. Keys are loaded from OpenSSH on-disk format (`ssh-keygen -t ed25519`). Replaces Locked Decision #6's "we guessed PKCS#1 v1.5 + SHA-256" rationale. |
+| `instrument_search`: query CSV not multi-key | (this commit) | Multi-value query params (`attribute_group`, `attributes`, `expand`, `minmax`) now serialize as a single comma-separated value (`?x=A,B,C`), Swagger 2.0 `collectionFormat=csv` — verified against Nordnet's own JS client `nordnet/nordnet-next-api` (`uriEncode` does `value.join(',')`). Previous code emitted repeated keys (`?x=A&x=B`), which the live API would silently treat as a single-element query (last value wins under most servers' multimap parsers). |
+| Models: drop `deny_unknown_fields` on response types | (this commit) | All response structs now silently ignore undocumented server fields. The doc-extract schemas are not guaranteed exhaustive vs the live API — a single extra field would otherwise surface as `Error::Decode` and kill every read call. Request structs (`PlaceOrderRequest`, `ModifyOrderRequest`, `ApiKeyStartLoginRequest`, `ApiKeyVerifyLoginRequest`) keep `deny_unknown_fields` to catch our own bugs at compile/test time. 26 `*_rejects_unknown_fields` tests removed; one tolerance assertion may be added later if useful. |
+
+## Locked decision update — #6 (signature scheme)
+
+The Phase 0 "Locked decision #6" recorded RSA PKCS#1 v1.5 + SHA-256 as
+the signature scheme based on the published HTML doc page being silent
+on the algorithm. The follow-up research found Nordnet's own current
+example repo (`nordnet/next-api-v2-examples`, last commit Sep 2025) and
+the public "Getting Started" doc both specify Ed25519 with raw signing
+and no namespace. The "RSA + encrypted-credentials" flow that older
+community clients (`larssonandreas`, `denro/nordnet`, `fhqvst/nordnet`)
+implement is for a deprecated pre-2018 endpoint that no longer exists.
+The new auth.rs uses pure Ed25519 over the raw UTF-8 bytes of the
+challenge per the official Python `sign.py` reference. No live test
+yet — first authenticated call will confirm.

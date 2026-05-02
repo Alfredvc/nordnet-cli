@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 ///
 /// All four fields are required per `_definitions/Status.md`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct Status {
     /// Additional information from the server (e.g. maintenance notices).
     pub message: String,

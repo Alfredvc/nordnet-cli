@@ -138,33 +138,6 @@ fn logout_response_fixture_roundtrip() {
 // ---------------------------------------------------------------------------
 // Layer 1b — deny_unknown_fields rejection
 // ---------------------------------------------------------------------------
-
-#[test]
-fn api_key_login_response_rejects_unknown_fields() {
-    let raw = r#"{
-        "expires_in":300,
-        "private_feed":{"encrypted":true,"hostname":"a","port":1},
-        "public_feed":{"encrypted":true,"hostname":"b","port":1},
-        "session_key":"x",
-        "extra":"oops"
-    }"#;
-    let r: Result<ApiKeyLoginResponse, _> = serde_json::from_str(raw);
-    assert!(
-        r.is_err(),
-        "deny_unknown_fields must reject extra fields on ApiKeyLoginResponse"
-    );
-}
-
-#[test]
-fn logged_in_status_rejects_unknown_fields() {
-    let raw = r#"{"logged_in":true,"extra":"oops"}"#;
-    let r: Result<LoggedInStatus, _> = serde_json::from_str(raw);
-    assert!(
-        r.is_err(),
-        "deny_unknown_fields must reject extra fields on LoggedInStatus"
-    );
-}
-
 // ---------------------------------------------------------------------------
 // Layer 2 — Wiremock integration
 // ---------------------------------------------------------------------------

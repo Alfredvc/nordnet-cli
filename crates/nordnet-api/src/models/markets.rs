@@ -18,7 +18,6 @@ use serde::{Deserialize, Serialize};
 ///
 /// Schema source: `docs-extract/_definitions/Market.md`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct Market {
     /// ISO country code (e.g. `"SE"`, `"NO"`). Optional per the schema —
     /// available for all non-virtual markets.

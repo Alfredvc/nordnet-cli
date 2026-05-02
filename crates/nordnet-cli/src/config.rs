@@ -13,7 +13,7 @@
 //! ```toml
 //! api_key = "..."
 //! service = "NEXTAPI"
-//! key_path = "/path/to/private_key.pem"
+//! key_path = "/path/to/id_ed25519"  # OpenSSH-format Ed25519 private key
 //! default_account = 1234567
 //! base_url = "https://public.nordnet.se/api/2"
 //! ```

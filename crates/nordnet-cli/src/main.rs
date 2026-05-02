@@ -10,6 +10,8 @@ mod cmd;
 mod config;
 mod output;
 
+use nordnet_api::Client;
+
 #[derive(Debug, Parser)]
 #[command(
     name = "nordnet",
@@ -32,6 +34,20 @@ enum Command {
     /// Print the loaded configuration (no secrets) and exit. Useful for
     /// agents to confirm their environment before running real ops.
     Config,
+    /// `nordnet info` — system status (root API group).
+    #[command(flatten)]
+    Root(cmd::root::Cmd),
+    /// `nordnet countries <op>` — country lookups.
+    Countries {
+        #[command(subcommand)]
+        cmd: cmd::countries::Cmd,
+    },
+    /// `nordnet tick-sizes <op>` — tick-size table lookups.
+    #[command(name = "tick-sizes")]
+    TickSizes {
+        #[command(subcommand)]
+        cmd: cmd::tick_sizes::Cmd,
+    },
 }
 
 #[tokio::main]
@@ -52,7 +68,27 @@ async fn main() -> anyhow::Result<()> {
             });
             output::emit(&view, &fields)?;
         }
+        Command::Root(c) => {
+            let client = build_client()?;
+            c.run(&client, &fields).await?;
+        }
+        Command::Countries { cmd } => {
+            let client = build_client()?;
+            cmd.run(&client, &fields).await?;
+        }
+        Command::TickSizes { cmd } => {
+            let client = build_client()?;
+            cmd.run(&client, &fields).await?;
+        }
     }
 
     Ok(())
+}
+
+/// Build a `Client` targeting the configured base URL. Authenticated
+/// commands attach a session via `Client::with_session` after running
+/// `nordnet login verify`.
+fn build_client() -> anyhow::Result<Client> {
+    let cfg = config::Config::load()?;
+    Client::new(cfg.base_url).map_err(Into::into)
 }

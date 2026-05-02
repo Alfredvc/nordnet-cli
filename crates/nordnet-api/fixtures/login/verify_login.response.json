@@ -1,1 +1,1 @@
-{"expires_in":300,"private_feed":{"encrypted":true,"hostname":"priv.feed.nordnet.se","port":443},"public_feed":{"encrypted":true,"hostname":"pub.feed.nordnet.se","port":443},"session_key":"sess-key-abc123"}
+{"expires_in":1800,"private_feed":{"encrypted":true,"hostname":"priv.next.nordnet.se","port":443},"public_feed":{"encrypted":true,"hostname":"pub.next.nordnet.se","port":443},"session_key":"15a6c4db-05b9-481c-b94a-ccffed83e693"}

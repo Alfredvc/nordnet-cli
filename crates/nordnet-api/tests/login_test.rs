@@ -77,10 +77,7 @@ fn start_login_request_fixture_roundtrip() {
 fn start_login_response_fixture_roundtrip() {
     let raw = start_login_response_fixture();
     let parsed: ChallengeResponse = serde_json::from_str(raw).expect("must parse");
-    assert_eq!(
-        parsed.challenge,
-        "c2FtcGxlLWNoYWxsZW5nZS1zdHJpbmctZm9yLXNpZ25pbmc="
-    );
+    assert_eq!(parsed.challenge, "f0dcd2fa-92b1-4151-93af-61697eae217a");
     assert_canonical_roundtrip::<ChallengeResponse>(raw);
 }
 
@@ -98,13 +95,13 @@ fn verify_login_request_fixture_roundtrip() {
 fn verify_login_response_fixture_roundtrip() {
     let raw = verify_login_response_fixture();
     let parsed: ApiKeyLoginResponse = serde_json::from_str(raw).expect("must parse");
-    assert_eq!(parsed.session_key, "sess-key-abc123");
-    assert_eq!(parsed.expires_in, 300);
+    assert_eq!(parsed.session_key, "15a6c4db-05b9-481c-b94a-ccffed83e693");
+    assert_eq!(parsed.expires_in, 1800);
     assert_eq!(
         parsed.private_feed,
         Feed {
             encrypted: true,
-            hostname: "priv.feed.nordnet.se".to_owned(),
+            hostname: "priv.next.nordnet.se".to_owned(),
             port: 443,
         }
     );
@@ -112,7 +109,7 @@ fn verify_login_response_fixture_roundtrip() {
         parsed.public_feed,
         Feed {
             encrypted: true,
-            hostname: "pub.feed.nordnet.se".to_owned(),
+            hostname: "pub.next.nordnet.se".to_owned(),
             port: 443,
         }
     );
@@ -160,10 +157,7 @@ async fn start_login_posts_request_body_and_returns_challenge() {
     let client = Client::new(server.uri()).unwrap();
     let req: ApiKeyStartLoginRequest = serde_json::from_str(start_login_request_fixture()).unwrap();
     let challenge = client.start_login(&req).await.unwrap();
-    assert_eq!(
-        challenge.challenge,
-        "c2FtcGxlLWNoYWxsZW5nZS1zdHJpbmctZm9yLXNpZ25pbmc="
-    );
+    assert_eq!(challenge.challenge, "f0dcd2fa-92b1-4151-93af-61697eae217a");
 }
 
 #[tokio::test]
@@ -207,9 +201,9 @@ async fn verify_login_posts_request_body_and_returns_session() {
     let req: ApiKeyVerifyLoginRequest =
         serde_json::from_str(verify_login_request_fixture()).unwrap();
     let response = client.verify_login(&req).await.unwrap();
-    assert_eq!(response.session_key, "sess-key-abc123");
-    assert_eq!(response.expires_in, 300);
-    assert_eq!(response.private_feed.hostname, "priv.feed.nordnet.se");
+    assert_eq!(response.session_key, "15a6c4db-05b9-481c-b94a-ccffed83e693");
+    assert_eq!(response.expires_in, 1800);
+    assert_eq!(response.private_feed.hostname, "priv.next.nordnet.se");
     assert_eq!(response.public_feed.port, 443);
 }
 

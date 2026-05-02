@@ -238,6 +238,24 @@ mod tests {
         assert_eq!(s.basic_auth_header(), "Basic YWJjOmFiYw==");
     }
 
+    /// Anchor: the exact challenge string from the official
+    /// `nordnet/next-api-v2-examples` README (UUID v4 form). Confirms the
+    /// signer accepts the live-shape challenge and that signing then
+    /// verifying with the matching public key round-trips.
+    #[test]
+    fn signs_official_example_challenge() {
+        let key = fixed_test_key();
+        let challenge = "f0dcd2fa-92b1-4151-93af-61697eae217a";
+
+        let b64 = sign_challenge(&key, challenge).unwrap();
+        let raw = B64.decode(&b64).unwrap();
+        let sig_bytes: [u8; 64] = raw.try_into().unwrap();
+        let signature = ed25519_dalek::Signature::from_bytes(&sig_bytes);
+        key.verifying_key()
+            .verify(challenge.as_bytes(), &signature)
+            .expect("signature must verify under matching public key");
+    }
+
     #[test]
     fn challenge_response_round_trip() {
         let raw = r#"{"challenge":"abc"}"#;

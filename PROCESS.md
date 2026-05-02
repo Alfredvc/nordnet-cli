@@ -494,7 +494,7 @@ The merge step. Conflict-free by design — every implementer wrote in its own f
 - All ~42 non-deprecated operations implemented and typed.
 - Every fixture roundtrips losslessly under `deny_unknown_fields`.
 - Every op has a wiremock integration test.
-- Cross-source and cross-endpoint consistency gates passed; outstanding doc inconsistencies documented.
+- Cross-endpoint consistency gate passed (Phase 3X); outstanding doc inconsistencies documented. (Phase 2C dropped — see §"Phase 2C".)
 - `cargo clippy --workspace --all-targets -- -D warnings` clean.
 - `cargo fmt --check` clean.
 - `cargo test --workspace` green.
@@ -508,5 +508,26 @@ Real-API verification is the user's responsibility, performed outside this pipel
 1. **Group decomposition.** API crate: 12 groups, no read/write split. CLI crate: 13 groups, with `orders` split into `orders_read` + `orders_write` for separate file ownership and commit. The split is internal to the CLI crate; users still see a single `nordnet orders <op>` namespace.
 2. **Write-op exposure in CLI.** Always enabled. No env-var gate, no `--confirm` flag, no hidden-by-default. Standard CLI behavior — irreversible ops are exposed in `--help` and run on invocation. User is responsible for what they invoke.
 3. **Locale.** Error messages and CLI text in English.
-4. **Branch strategy.** Single branch `ccairgap/plushy-penguin-125c`. Phase 5 commits one-per-group sequentially. No worktrees, no per-group PRs.
+4. **Branch strategy.** Single branch `ccairgap/misty-octopus-3590`. Phase 5 commits one-per-group sequentially. No worktrees, no per-group PRs.
 5. **Saved doc HTML location.** `docs-source/nordnet-api-v2.html` (committed to repo, reproducible from clean checkout).
+6. **Auth flow shape (deviation from earlier draft).** Implemented per HTML reference, not the username/password/timestamp variant the earlier process draft described:
+   - `POST /login/start` body: `{api_key}`. Response: `{challenge}`.
+   - Caller signs `challenge` with their RSA private key.
+   - `POST /login/verify` body: `{api_key, service, signature}`. Response carries `session_key`.
+   - Auth header: `Authorization: Basic base64(session_key:session_key)`.
+   - **Signature scheme: RSA PKCS#1 v1.5 with SHA-256.** Picked because deterministic (testable) and the default for `rsa::pkcs1v15::SigningKey<Sha256>` paired with `ssh-keygen -t rsa`. The HTML only says "signed and base64 encoded challenge string" — the exact scheme lives in an external Getting Started guide not in `docs-source/`. **If the live API rejects this signature, swap `auth::sign_challenge` and re-pin its unit test; structural code is unaffected.** Requires user verification against live login before any real-API run.
+7. **Fixture provenance.** HTML contains zero example bodies (Swagger2Markup output). Phase 3 implementers synthesize fixtures from each op's response schema table in `docs-extract/<group>/<op>.md`. Each fixture is paired with `fixtures/<group>/<op>.meta.toml` carrying `fixture_provenance = "synthesized_from_schema"` and `schema_source = "<docs-extract anchor>"`. Reviewer enforces that no fixture is committed without its meta file.
+8. **`cmd/orders.rs` feature gate.** The foundation-locked dispatcher is gated behind `feature = "orders-cli"` in `crates/nordnet-cli/Cargo.toml` (off by default) so Phase 0 + Phase 1 builds do not require `cmd/orders_read.rs` and `cmd/orders_write.rs` to exist. **Phase 4 must enable the `orders-cli` feature in `crates/nordnet-cli/Cargo.toml` in the same commit that lands either orders CLI file**, otherwise the dispatcher stays inert and `nordnet orders ...` is missing from the binary.
+
+## Pipeline state log
+
+| Phase | Status | Commit | Notes |
+|---|---|---|---|
+| 0 Foundation | done | `ccbcd05` | 39 tests green; auth deviation logged in §Locked decisions #6 |
+| 1 Doc extraction | done | `1a50c7d` | 43 op extracts + INVENTORY.md; 5 orders ops (no `get`) |
+| 2 Fixture assembly | dropped | — | HTML has no example bodies; deferred to Phase 3 implementers |
+| 2C Cross-source consistency | dropped | — | Degenerate without examples |
+| 3 Resource implementation | not started | — | Next dispatch |
+| 3X Cross-endpoint consistency | not started | — | |
+| 4 CLI surface | not started | — | Must enable `orders-cli` feature; see §Locked decisions #8 |
+| 5 Workspace integration | not started | — | |

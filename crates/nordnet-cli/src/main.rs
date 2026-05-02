@@ -48,6 +48,21 @@ enum Command {
         #[command(subcommand)]
         cmd: cmd::tick_sizes::Cmd,
     },
+    /// `nordnet markets <op>` — market lookups.
+    Markets {
+        #[command(subcommand)]
+        cmd: cmd::markets::Cmd,
+    },
+    /// `nordnet news <op>` — news source + article lookups.
+    News {
+        #[command(subcommand)]
+        cmd: cmd::news::Cmd,
+    },
+    /// `nordnet login <op>` — authentication subcommands.
+    Login {
+        #[command(subcommand)]
+        cmd: cmd::login::Cmd,
+    },
 }
 
 #[tokio::main]
@@ -77,6 +92,18 @@ async fn main() -> anyhow::Result<()> {
             cmd.run(&client, &fields).await?;
         }
         Command::TickSizes { cmd } => {
+            let client = build_client()?;
+            cmd.run(&client, &fields).await?;
+        }
+        Command::Markets { cmd } => {
+            let client = build_client()?;
+            cmd.run(&client, &fields).await?;
+        }
+        Command::News { cmd } => {
+            let client = build_client()?;
+            cmd.run(&client, &fields).await?;
+        }
+        Command::Login { cmd } => {
             let client = build_client()?;
             cmd.run(&client, &fields).await?;
         }

@@ -28,10 +28,11 @@
 //!   `serde_urlencoded` rejects with `unsupported value`). The default
 //!   `Decimal` `Display`-based serialization produces a decimal string in
 //!   both formats, which is what the live API expects on the wire.
-//! - The local `OrderType` enum (place-order request) conflicts with the
-//!   `OrderType` struct defined in `tradables`. Each lives in its own
-//!   module, so no symbol clash exists — but the duplicated name is a
-//!   Phase 3X reconciliation candidate.
+//! - This module's [`OrderType`] enum is the closed set of values
+//!   accepted by `place_order` on the request side. The structurally
+//!   different `(name, type)` pair in the `tradables` group lives there
+//!   as [`crate::models::tradables::AllowedOrderType`] (renamed during
+//!   post-Phase-5 hardening to remove the previous name collision).
 //! - `ActivationCondition` exists in two distinct shapes in the docs:
 //!   the **request** form is a single enum string sent as the
 //!   `activation_condition` form field on `place_order`; the **response**

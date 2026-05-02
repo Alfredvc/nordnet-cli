@@ -15,7 +15,7 @@
 
 use nordnet_api::ids::{MarketId, TradableId};
 use nordnet_api::models::tradables::{
-    CalendarDay, OrderType, PublicTrade, TradableEligibility, TradableInfo, TradableKey,
+    CalendarDay, AllowedOrderType, PublicTrade, TradableEligibility, TradableInfo, TradableKey,
     TradablePublicTrades,
 };
 use nordnet_api::{Client, Error};
@@ -81,7 +81,7 @@ fn get_tradable_info_fixture_roundtrip() {
     assert_eq!(entry.order_types.len(), 3);
     assert_eq!(
         entry.order_types[0],
-        OrderType {
+        AllowedOrderType {
             name: "Limit".to_owned(),
             r#type: "LIMIT".to_owned(),
         }

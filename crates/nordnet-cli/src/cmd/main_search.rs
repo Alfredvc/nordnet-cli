@@ -3,12 +3,24 @@
 //! Wired into main.rs as `nordnet search <query> [options]`.
 
 use clap::{ArgAction, Args, Subcommand};
+use indoc::indoc;
 
 /// Subcommands for the `main_search` namespace.
 #[derive(Debug, Subcommand)]
 pub enum Cmd {
     /// Run a main search. The query string is required; all other
     /// parameters are optional with API-side defaults.
+    ///
+    /// Cross-corpus search across instruments, news, CMS pages, and
+    /// blog posts. Use `--search-space` to narrow. The result shape
+    /// varies per search-space hit; use `--fields` carefully.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet search ericsson
+            nordnet search 'apple inc' --limit 25
+            nordnet search ericsson --search-space INSTRUMENTS
+            nordnet search ericsson --instrument-group EQUITY --instrument-group ETF
+    "})]
     Search(SearchArgs),
 }
 

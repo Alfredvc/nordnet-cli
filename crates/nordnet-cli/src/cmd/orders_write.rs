@@ -1,11 +1,12 @@
 //! `nordnet orders place|modify|activate|cancel` — write-side orders subcommands.
 //!
-//! Lives at `crate::cmd::orders_write::Cmd` because the foundation-locked
-//! dispatcher in `cmd/orders.rs` (gated behind `feature = "orders-cli"`)
-//! flattens this into the top-level `nordnet orders` namespace alongside
+//! Lives at `crate::cmd::orders_write::Cmd` because the dispatcher in
+//! `cmd/orders.rs` (gated behind `feature = "orders-cli"`) flattens this
+//! into the top-level `nordnet orders` namespace alongside
 //! `crate::cmd::orders_read::Cmd`.
 
 use clap::{Args, Subcommand};
+use indoc::indoc;
 use nordnet_model::ids::{AccountId, MarketId, OrderId, TradableId};
 use nordnet_model::models::orders::{
     ModifyOrderRequest, OrderActivationCondition, OrderSide, OrderType, PlaceOrderRequest,
@@ -18,12 +19,53 @@ use std::str::FromStr;
 #[derive(Debug, Subcommand)]
 pub enum Cmd {
     /// Place a new order (POST /accounts/{accid}/orders).
+    ///
+    /// Real money. Requires `--market-id`, `--side`, `--volume`. Most
+    /// other fields are optional with API-side defaults; supply
+    /// `--price` + `--currency` for limit orders, `--trigger-value` +
+    /// `--activation-condition` for stops. Returns the new `order_id`.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            # Limit buy 10 ERIC B @ 101.50 SEK
+            nordnet orders place 12345 --market-id 11 --side BUY \\
+                --volume 10 --price 101.50 --currency SEK \\
+                --order-type LIMIT --identifier 101
+
+            # Stop-loss sell at trigger 95.00, market on activation
+            nordnet orders place 12345 --market-id 11 --side SELL \\
+                --volume 10 --identifier 101 \\
+                --activation-condition STOP_ACTPRICE \\
+                --trigger-value 95.00 --trigger-condition '<='
+    "})]
     Place(PlaceArgs),
     /// Modify an existing order's price/volume (PUT /accounts/{accid}/orders/{order_id}).
+    ///
+    /// Real money. At least one of `--price` (with `--currency`),
+    /// `--volume`, or `--open-volume` must be set. Use
+    /// `nordnet orders list <accid>` to discover order IDs.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet orders modify 12345 67890 --price 102.00 --currency SEK
+            nordnet orders modify 12345 67890 --volume 20
+    "})]
     Modify(ModifyArgs),
     /// Activate an inactive order (PUT /accounts/{accid}/orders/{order_id}/activate).
+    ///
+    /// Real money. Promotes a held order to active state — only
+    /// applicable to orders that were placed in an inactive state.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet orders activate 12345 67890
+    "})]
     Activate(OrderRefArgs),
     /// Cancel an order (DELETE /accounts/{accid}/orders/{order_id}).
+    ///
+    /// Real money. Idempotent on the server — re-cancelling a
+    /// cancelled order returns the same response shape.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet orders cancel 12345 67890
+    "})]
     Cancel(OrderRefArgs),
 }
 

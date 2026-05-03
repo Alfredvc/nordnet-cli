@@ -1,11 +1,12 @@
 //! `nordnet orders list` — read-side orders subcommand.
 //!
-//! Lives at `crate::cmd::orders_read::Cmd` because the foundation-locked
-//! dispatcher in `cmd/orders.rs` (gated behind `feature = "orders-cli"`)
-//! flattens this into the top-level `nordnet orders` namespace alongside
+//! Lives at `crate::cmd::orders_read::Cmd` because the dispatcher in
+//! `cmd/orders.rs` (gated behind `feature = "orders-cli"`) flattens this
+//! into the top-level `nordnet orders` namespace alongside
 //! `crate::cmd::orders_write::Cmd`.
 
 use clap::{Args, Subcommand};
+use indoc::indoc;
 use nordnet_model::ids::AccountId;
 
 /// Read-side subcommands for the `nordnet orders` namespace.
@@ -13,8 +14,15 @@ use nordnet_model::ids::AccountId;
 pub enum Cmd {
     /// List orders belonging to the given account (GET /accounts/{accid}/orders).
     ///
-    /// Returns an empty list when there are no orders (the API returns 204
-    /// No Content in that case).
+    /// Returns an empty list when there are no orders (the API returns
+    /// 204 No Content in that case). Pass `--deleted=true` to include
+    /// orders that were cancelled or filled today.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet orders list 12345
+            nordnet orders list 12345 --deleted=true
+            nordnet orders list 12345 --fields order_id,side,price,volume,state
+    "})]
     List(ListArgs),
 }
 

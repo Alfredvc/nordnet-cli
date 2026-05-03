@@ -1,10 +1,20 @@
 //! `nordnet info` — system status (the `root` API group).
 
 use clap::Subcommand;
+use indoc::indoc;
 
 #[derive(Debug, Subcommand)]
 pub enum Cmd {
     /// Print Nordnet system status (GET /api/2).
+    ///
+    /// Public endpoint — no authentication required. Useful as a
+    /// liveness probe before running authenticated workflows. Returns
+    /// API version, valid system status, and supported feeds.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet info
+            nordnet info --fields system_status,valid_version
+    "})]
     Info,
 }
 

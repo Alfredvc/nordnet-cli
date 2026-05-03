@@ -20,17 +20,18 @@ path = "src/main.rs"
 
 [features]
 default = ["orders-cli"]
-# Enables the `nordnet orders ...` namespace. Gated behind a feature
-# only because Phase 0 needed to ship the foundation-locked
-# `cmd/orders.rs` dispatcher before the `orders_read` / `orders_write`
-# modules existed. Both modules now exist (Phase 4 wave 4); the feature
-# is on by default.
+# Enables the `nordnet orders <op>` namespace (place / modify / activate /
+# cancel / list). On by default; disable with
+# `cargo install nordnet-cli --no-default-features` to ship a read-only
+# build.
 orders-cli = []
 
 [dependencies]
 nordnet-api = { path = "../nordnet-api", version = "0.1" }
 nordnet-model = { path = "../nordnet-model", version = "0.1" }
 clap = { workspace = true }
+clap_complete = { workspace = true }
+indoc = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

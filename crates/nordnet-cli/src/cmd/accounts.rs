@@ -1,6 +1,16 @@
 //! `nordnet accounts` — account info, ledgers, positions, returns, trades.
+//!
+//! # Implemented ops
+//!
+//! - `list`           → `client.list_accounts(ListAccountsQuery)`
+//! - `info`           → `client.get_account_info(AccountId, AccountInfoQuery)`
+//! - `ledgers`        → `client.list_ledgers(AccountId)`
+//! - `positions`      → `client.list_positions(AccountId, ListPositionsQuery)`
+//! - `returns-today`  → `client.get_returns_today(AccountId, ReturnsTodayQuery)`
+//! - `trades`         → `client.list_account_trades(AccountId, ListAccountTradesQuery)`
 
 use clap::{Args, Subcommand};
+use indoc::indoc;
 use nordnet_api::resources::accounts::{
     AccountInfoQuery, ListAccountTradesQuery, ListAccountsQuery, ListPositionsQuery,
     ReturnsTodayQuery,
@@ -11,16 +21,66 @@ use nordnet_model::ids::AccountId;
 #[derive(Debug, Subcommand)]
 pub enum Cmd {
     /// List accessible accounts (GET /accounts).
+    ///
+    /// Returns one row per account the authenticated user can access.
+    /// Account IDs surfaced here are the integer `accid` accepted by
+    /// every other `accounts` subcommand and by `orders`.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet accounts list
+            nordnet accounts list --include-credit-accounts=true
+            nordnet accounts list --fields accid,alias,type
+    "})]
     List(ListArgs),
     /// Get account info (GET /accounts/{accid}/info).
+    ///
+    /// Detailed snapshot: balances, buying power, margin, currency.
+    /// Two boolean flags toggle the more expensive fields off-by-default
+    /// upstream defaults.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet accounts info 12345
+            nordnet accounts info 12345 --include-interest-rate=false
+    "})]
     Info(InfoArgs),
     /// Get ledger information (GET /accounts/{accid}/ledgers).
+    ///
+    /// Per-currency cash positions and account ledger entries.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet accounts ledgers 12345
+    "})]
     Ledgers(AccidArg),
     /// List positions held in an account (GET /accounts/{accid}/positions).
+    ///
+    /// Returns one row per held instrument. The output is an array of
+    /// objects, so `--fields` filters element-wise.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet accounts positions 12345
+            nordnet accounts positions 12345 --fields id,instrument,qty
+            nordnet accounts positions 12345 --include-instrument-loans=true
+    "})]
     Positions(PositionsArgs),
     /// Today's return transactions (GET /accounts/{accid}/returns/transactions/today).
+    ///
+    /// Same-day P/L ledger. For multi-day history, use the trades
+    /// subcommand with `--days`.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet accounts returns-today 12345
+            nordnet accounts returns-today 12345 --include-credit-account=false
+    "})]
     ReturnsToday(ReturnsArgs),
     /// List trades for an account (GET /accounts/{accid}/trades).
+    ///
+    /// Server caps the lookback window at 7 days. Pass `--days` to
+    /// extend up to that limit (default 0 = today).
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet accounts trades 12345
+            nordnet accounts trades 12345 --days 7
+    "})]
     Trades(TradesArgs),
 }
 

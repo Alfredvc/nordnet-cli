@@ -1,6 +1,19 @@
 //! `nordnet instruments` — instrument lookups + leverage queries.
+//!
+//! # Implemented ops
+//!
+//! - `lookup`            → `client.lookup(lookup_type, lookup)`
+//! - `types`             → `client.list_types()`
+//! - `get-type`          → `client.get_type(instrument_type)`
+//! - `underlyings`       → `client.list_underlyings(derivative_type, currency)`
+//! - `suitability`       → `client.get_instrument_suitability(InstrumentId)`
+//! - `get`               → `client.get_instrument(InstrumentId)`
+//! - `leverages`         → `client.list_leverages(InstrumentId, LeveragesQuery)`
+//! - `leverage-filters`  → `client.get_leverage_filters(InstrumentId)`
+//! - `trades`            → `client.list_instrument_trades(InstrumentId)`
 
 use clap::{Args, Subcommand};
+use indoc::indoc;
 use nordnet_api::resources::instruments::LeveragesQuery;
 use nordnet_model::ids::{InstrumentId, IssuerId};
 
@@ -8,22 +21,97 @@ use nordnet_model::ids::{InstrumentId, IssuerId};
 #[derive(Debug, Subcommand)]
 pub enum Cmd {
     /// Look up instruments by predefined fields.
+    ///
+    /// Resolves a fixed set of identifier formats to instrument IDs.
+    /// `lookup_type` selects the format (e.g. `market_id_identifier`,
+    /// `isin_code_currency_market_id`); `lookup` is the formatted value
+    /// that goes with it (e.g. `11:101`).
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet instruments lookup market_id_identifier 11:101
+            nordnet instruments lookup isin_code_currency_market_id SE0000108656:SEK:11
+    "})]
     Lookup(LookupArgs),
     /// List all Nordnet instrument types.
+    ///
+    /// Static reference data — the canonical list of `instrument_type`
+    /// codes used by `get-type`, `leverages --instrument-type`, and the
+    /// instrument-search APIs.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet instruments types
+    "})]
     Types,
     /// Get one or more instrument types by code.
+    ///
+    /// Accepts a single code or a comma-separated list. Returns the
+    /// description and metadata for each type.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet instruments get-type ESH
+            nordnet instruments get-type ESH,FUT
+    "})]
     GetType(GetTypeArgs),
     /// List underlying instruments for a derivative type and currency.
+    ///
+    /// `derivative_type` is one of `leverage` or `option_pair`. Use the
+    /// returned IDs as the underlying for `leverages` or
+    /// `instrument-search option-list-pairs`.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet instruments underlyings leverage SEK
+            nordnet instruments underlyings option_pair SEK
+    "})]
     Underlyings(UnderlyingsArgs),
     /// Get customer trading eligibility for an instrument.
+    ///
+    /// Authenticated. Returns whether the current customer can trade
+    /// this instrument under their suitability profile.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet instruments suitability 16099051
+    "})]
     Suitability(InstrumentArg),
     /// Get instrument information by ID.
+    ///
+    /// Static + market metadata for a single instrument: name, type,
+    /// ISIN, currency, leverage attributes (if applicable).
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet instruments get 16099051
+            nordnet instruments get 16099051 --fields instrument_id,name,currency
+    "})]
     Get(InstrumentArg),
     /// List leverage instruments for an underlying with optional filters.
+    ///
+    /// All filter flags narrow the response server-side. Use
+    /// `leverage-filters` first to discover which filter values are
+    /// valid for a given underlying.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet instruments leverages 16099051 --currency SEK
+            nordnet instruments leverages 16099051 --currency SEK --market-view U
+            nordnet instruments leverages 16099051 --issuer-id 14 --instrument-type MINI
+    "})]
     Leverages(LeveragesArgs),
     /// Get valid leverage filter values for an underlying instrument.
+    ///
+    /// Returns the set of currencies, expiration dates, issuer IDs,
+    /// instrument types, and market views accepted by `leverages` for
+    /// this underlying.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet instruments leverage-filters 16099051
+    "})]
     LeverageFilters(InstrumentArg),
     /// List public trades for an instrument.
+    ///
+    /// Aggregated across all venues for the instrument. For per-venue
+    /// trades, use `nordnet tradables trades <market_id>:<identifier>`.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet instruments trades 16099051
+    "})]
     Trades(InstrumentArg),
 }
 

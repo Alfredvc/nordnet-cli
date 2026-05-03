@@ -10,22 +10,70 @@
 //! - `option-list-pairs`    → `client.search_optionlist_pairs(currency, expire_date, underlying_symbol)`
 
 use clap::{ArgAction, Args, Subcommand};
+use indoc::indoc;
 use nordnet_api::resources::instrument_search::{AttributesQuery, ListSearchQuery, StocklistQuery};
 
 /// Subcommands for the `instrument-search` namespace.
 #[derive(Debug, Subcommand)]
 pub enum Cmd {
     /// Search for attributes available in the instrument-search APIs.
+    ///
+    /// Discovery endpoint — lists every attribute the list-search
+    /// endpoints can filter, sort, or return. Filter by entity type
+    /// (e.g. `STOCKLIST`) to scope to one list.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet instrument-search attributes --entity-type STOCKLIST
+            nordnet instrument-search attributes --only-filterable=true
+            nordnet instrument-search attributes --attribute-group PRICE_INFO --attribute-group EXCHANGE_INFO
+    "})]
     Attributes(AttributesArgs),
     /// Search the stock list.
+    ///
+    /// Free-text + structured filter search across the equity universe.
+    /// Use `--attributes` to control which attributes are returned (the
+    /// default response can be large).
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet instrument-search stocklist --free-text-search ericsson
+            nordnet instrument-search stocklist --limit 50 --offset 0 --sort-attribute name
+            nordnet instrument-search stocklist --attributes name --attributes isin
+    "})]
     Stocklist(StocklistArgs),
     /// Search the bull/bear instrument list.
+    ///
+    /// Same shape as `stocklist` but scoped to bull/bear certificates.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet instrument-search bull-bear-list --limit 25
+            nordnet instrument-search bull-bear-list --free-text-search OMXS30
+    "})]
     BullBearList(ListSearchArgs),
     /// Search the mini-future instrument list.
+    ///
+    /// Same shape as `stocklist` but scoped to mini-futures.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet instrument-search mini-future-list --limit 25
+    "})]
     MiniFutureList(ListSearchArgs),
     /// Search the unlimited-turbo instrument list.
+    ///
+    /// Same shape as `stocklist` but scoped to unlimited-turbos.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet instrument-search unlimited-turbo-list --limit 25
+    "})]
     UnlimitedTurboList(ListSearchArgs),
     /// Look up an option-pair by underlying + expiration date + currency.
+    ///
+    /// `expire_date` is a UNIX-millis epoch timestamp (i64) — divide
+    /// rendered dates by 1000 for the Unix-seconds equivalent.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet instrument-search option-list-pairs \\
+                --currency SEK --expire-date 1735689600000 --underlying-symbol 'ERIC B'
+    "})]
     OptionListPairs(OptionListPairsArgs),
 }
 

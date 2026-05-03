@@ -7,6 +7,7 @@
 //! - `suitability` → `client.get_suitability(&key)`
 
 use clap::{Args, Subcommand};
+use indoc::indoc;
 use nordnet_model::ids::{MarketId, TradableId};
 use nordnet_model::models::tradables::TradableKey;
 
@@ -14,10 +15,36 @@ use nordnet_model::models::tradables::TradableKey;
 #[derive(Debug, Subcommand)]
 pub enum Cmd {
     /// Get trading calendar and allowed trading types for a tradable.
+    ///
+    /// Returns the tradable's session schedule, lot size, supported
+    /// order types, and currency. Useful before placing an order to
+    /// confirm the venue is open and the order_type is permitted.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet tradables info 11:101
+            nordnet tradables info 11:101 --fields trading_status,lot_size
+    "})]
     Info(KeyArgs),
     /// List public trades for a tradable.
+    ///
+    /// Most-recent first. `--count all` returns the full window
+    /// available; otherwise pass a positive integer (default 5).
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet tradables trades 11:101
+            nordnet tradables trades 11:101 --count 25
+            nordnet tradables trades 11:101 --count all
+    "})]
     Trades(TradesArgs),
     /// Get customer trading eligibility for a tradable.
+    ///
+    /// Authenticated. Returns whether the current customer can trade
+    /// this instrument under their suitability profile, and the reason
+    /// when not.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet tradables suitability 11:101
+    "})]
     Suitability(KeyArgs),
 }
 

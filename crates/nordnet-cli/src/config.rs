@@ -119,7 +119,7 @@ impl Config {
     }
 
     /// Returns the api_key, or [`ConfigError::Missing`] if not set.
-    /// Used by Phase 4 commands that require authentication.
+    /// Used by subcommands that require authentication.
     #[allow(dead_code)]
     pub fn require_api_key(&self) -> Result<&str, ConfigError> {
         self.api_key
@@ -128,7 +128,7 @@ impl Config {
     }
 
     /// Returns the key_path, or [`ConfigError::Missing`] if not set.
-    /// Used by Phase 4 commands that require authentication.
+    /// Used by subcommands that require authentication.
     #[allow(dead_code)]
     pub fn require_key_path(&self) -> Result<&Path, ConfigError> {
         self.key_path
@@ -147,7 +147,7 @@ struct FileConfig {
 }
 
 #[derive(Debug, Error)]
-#[allow(dead_code)] // `Missing` is constructed by Phase 4 require_* helpers above.
+#[allow(dead_code)] // `Missing` is constructed by the `require_*` helpers above.
 pub enum ConfigError {
     #[error("missing required configuration field: {0}")]
     Missing(&'static str),

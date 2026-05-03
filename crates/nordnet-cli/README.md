@@ -5,8 +5,8 @@
 
 Agent-friendly command-line frontend for the Nordnet External API v2.
 
-Every subcommand emits a single JSON document on stdout, which makes the
-binary easy to script and easy for AI agents to consume. The full
+Every subcommand emits a single pretty-printed JSON document on stdout —
+trivial to script, trivial for AI agents to consume. The full
 non-deprecated REST surface (~42 operations across 12 resource groups) is
 wrapped, including read and write endpoints.
 
@@ -71,18 +71,113 @@ Resolution order, highest priority first:
 
 `nordnet config` dumps the resolved configuration as JSON (secrets redacted).
 
-## Output format
+## Output contract
 
-Stdout always carries a single pretty-printed JSON value. Use
-`--fields a,b,c` (a global flag) to restrict the output to a subset of
-top-level keys. Pipe through `jq` for richer queries:
+Designed to be parsed without surprises. The contract is:
+
+- **Stdout** carries exactly one pretty-printed JSON value per
+  invocation, terminated by a trailing newline. No banners, no progress
+  spinners, no ANSI colour codes.
+- **Stderr** carries human-readable diagnostics and, on failure, a
+  structured JSON error document.
+- **Exit codes**:
+
+  | Code | Meaning                                                    |
+  | ---- | ---------------------------------------------------------- |
+  | `0`  | Success.                                                   |
+  | `1`  | Any unhandled error — request failure, parse error, I/O.   |
+
+  Distinguishing an HTTP 401 from an HTTP 500 is done by inspecting the
+  stderr JSON document, not the exit code.
+- **`--fields a,b,c`** is a global flag that restricts the output to a
+  subset of top-level keys, preserving the requested order. Arrays of
+  objects are filtered element-wise; scalar payloads with `--fields` set
+  exit non-zero (`FilterInapplicable`).
+
+### Stability promise
+
+Within a `0.x` minor version series:
+
+- Output schemas are **append-only**. Top-level field names will not be
+  renamed or removed without a minor-version bump.
+- Subcommand names, flag names, and exit codes are stable.
+- New optional flags and new fields may be added at any time.
+
+A `0.x → 0.(x+1)` bump may rename or remove fields and is documented in
+the changelog. Pin loosely (`nordnet-cli = "0.1"`) to follow patch
+releases automatically; pin exactly (`= 0.1.2`) if you cannot tolerate
+schema additions.
+
+### jq examples
 
 ```sh
+# Open positions only
 nordnet accounts positions 12345 | jq '.[] | select(.qty > 0)'
+
+# All active orders, just the fields that matter
+nordnet orders list 12345 \
+    --fields order_id,side,price,volume,state \
+    | jq '.[] | select(.state == "ACTIVE")'
+
+# Resolve an account by alias
+nordnet accounts list | jq -r '.[] | select(.alias=="ISK").accid'
 ```
 
-Errors print a structured JSON document to stderr and the binary exits
-non-zero.
+## For AI agents and scripts
+
+`nordnet` is designed to be driven by code as a first-class use case:
+
+- **Single-shot, deterministic output.** No interactive prompts, no
+  pagers, no colour. `nordnet <subcommand> --help` is the authoritative
+  flag list — every subcommand carries a `long_about` description and an
+  `EXAMPLES:` block with concrete invocations.
+- **Stable JSON contract.** See the stability promise above.
+- **Composable with `jq` / `jaq` / `gron`.** Output is always one JSON
+  value, so any structural query tool works without preprocessing.
+- **Field projection.** `--fields a,b,c` keeps the prompt window small
+  by trimming responses to exactly what the agent needs — a 200-row
+  positions response fits in a single tool result this way.
+- **Idempotent reads.** Every read endpoint is safe to retry. Write
+  endpoints (`auth login`, `orders place|modify|activate|cancel`) are
+  documented per-subcommand and produce JSON that includes the resulting
+  IDs so the agent can chain calls.
+- **Structured errors.** Failures emit a JSON document on stderr (not
+  stdout) so success output is never accidentally polluted on retry
+  loops.
+
+Recommended agent loop:
+
+```sh
+nordnet auth status --fields status \
+    | jq -e '.status == "logged_in"' >/dev/null \
+    || nordnet auth login
+
+# Now safe to issue authenticated calls.
+nordnet accounts list --fields accid,alias
+```
+
+## Shell completions
+
+`nordnet completions <shell>` writes a completion script to stdout.
+Generated at runtime from the live clap definition, so the script always
+matches the installed binary.
+
+```sh
+# Bash (Linux)
+nordnet completions bash > ~/.local/share/bash-completion/completions/nordnet
+
+# Zsh — append to a directory in $fpath
+nordnet completions zsh > "${fpath[1]}/_nordnet"
+
+# Fish
+nordnet completions fish > ~/.config/fish/completions/nordnet.fish
+
+# PowerShell
+nordnet completions powershell | Out-String | Invoke-Expression
+
+# Elvish
+nordnet completions elvish > ~/.config/elvish/lib/nordnet.elv
+```
 
 ## Library access
 

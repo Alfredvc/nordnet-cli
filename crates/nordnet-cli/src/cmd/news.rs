@@ -12,14 +12,31 @@
 //! client.
 
 use clap::{Args, Subcommand};
+use indoc::indoc;
 use nordnet_model::models::news::NewsId;
 
 /// Subcommands for the `news` namespace.
 #[derive(Debug, Subcommand)]
 pub enum Cmd {
     /// List all news sources the authenticated user has access to.
+    ///
+    /// Authenticated. Returns provider IDs, display names, and locale
+    /// information. Use the IDs as filters when retrieving articles via
+    /// the search APIs.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet news sources
+            nordnet news sources --fields source_id,name,country
+    "})]
     Sources,
     /// Get a news article by ID.
+    ///
+    /// Authenticated. Article IDs come from search results
+    /// (`nordnet search <query> --search-space NEWS`).
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet news get 12345678
+    "})]
     Get(GetArgs),
 }
 

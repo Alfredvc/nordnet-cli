@@ -24,6 +24,7 @@
 
 use anyhow::Context;
 use clap::Subcommand;
+use indoc::indoc;
 use nordnet_model::auth::{
     parse_private_key_openssh, sign_challenge, ApiKeyStartLoginRequest, ApiKeyVerifyLoginRequest,
     Session,
@@ -43,10 +44,28 @@ pub enum Cmd {
     /// challenge round-trip is performed automatically; on success the
     /// session is written to `~/.config/nordnet/session.toml` with mode
     /// `0600` (Unix) so subsequent `nordnet <group> <op>` calls are
-    /// authenticated transparently.
+    /// authenticated transparently. Idempotent — re-running overwrites
+    /// the stored session.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            # Use values from credentials.toml or the environment
+            nordnet auth login
+
+            # One-off override via env
+            NORDNET_API_KEY=... NORDNET_KEY_PATH=~/.ssh/nordnet_ed25519 \\
+                nordnet auth login
+    "})]
     Login,
     /// Invalidate the current session (DELETE /login) and remove the
     /// local session file.
+    ///
+    /// Idempotent if the session file is missing locally — surfaces
+    /// `Error::Unauthorized` if the server-side session has already
+    /// lapsed. Always removes the local file on success.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet auth logout
+    "})]
     Logout,
     /// Touch the current session (PUT /login) and refresh the local
     /// `acquired_at` timestamp so `auth status` reflects the renewed
@@ -61,9 +80,21 @@ pub enum Cmd {
     /// authenticated calls remain authoritative — they'll surface
     /// `Error::Unauthorized` (HTTP 401) the moment the server-side
     /// session lapses.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet auth refresh
+    "})]
     Refresh,
     /// Print local session metadata (path, expiry, time remaining)
     /// without contacting the API.
+    ///
+    /// Cheap probe — does not consume a request budget. Returns
+    /// `status: \"not_logged_in\"` if the session file is missing.
+    #[command(after_help = indoc! {"
+        EXAMPLES:
+            nordnet auth status
+            nordnet auth status --fields status,seconds_remaining
+    "})]
     Status,
 }
 

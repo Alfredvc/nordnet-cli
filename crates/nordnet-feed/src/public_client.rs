@@ -1,4 +1,21 @@
 //! Public market-data feed client.
+//!
+//! [`PublicFeedClient`] owns one TLS connection to
+//! `public.feed.nordnet.se`. The interaction model is:
+//!
+//! 1. [`PublicFeedClient::connect`] — open TCP+TLS, configure socket
+//!    options (NODELAY, keepalive), apply connect timeout.
+//! 2. [`PublicFeedClient::login`] — fire-and-forget; failure surfaces
+//!    asynchronously via [`crate::PublicEvent::Error`] in the recv loop.
+//! 3. [`PublicFeedClient::subscribe`] — one call per stream of interest.
+//!    See the [command module](crate::command) for the subscribe →
+//!    event mapping.
+//! 4. [`PublicFeedClient::recv`] in a loop — typed events arrive here,
+//!    including heartbeats, server errors, and `DecodeFailed` soft
+//!    failures (non-terminal).
+//!
+//! Any [`crate::FeedError`] from any method is terminal; the client
+//! transitions to `Closed` and a new client is required to continue.
 
 use std::time::Duration;
 
@@ -68,6 +85,13 @@ pub struct PublicFeedClient {
 
 impl PublicFeedClient {
     /// Connect using [`FeedConfig::default`] tunables.
+    ///
+    /// # Errors
+    ///
+    /// - [`FeedError::ConnectTimeout`] — TCP+TLS handshake exceeded the
+    ///   default 10s budget.
+    /// - [`FeedError::Tls`] — TLS handshake / certificate failure.
+    /// - [`FeedError::Io`] — raw socket / network failure.
     pub async fn connect(feed: &Feed) -> Result<Self, FeedError> {
         Self::connect_with(feed, &FeedConfig::default()).await
     }
@@ -77,6 +101,13 @@ impl PublicFeedClient {
     /// `config.connect_timeout` bounds combined TCP + TLS handshake
     /// time. `config.heartbeat_timeout` is applied to every subsequent
     /// [`Self::recv`] call.
+    ///
+    /// # Errors
+    ///
+    /// - [`FeedError::ConnectTimeout`] — combined TCP+TLS handshake
+    ///   exceeded `config.connect_timeout`.
+    /// - [`FeedError::Tls`] — TLS handshake / certificate failure.
+    /// - [`FeedError::Io`] — raw socket / network failure.
     pub async fn connect_with(feed: &Feed, config: &FeedConfig) -> Result<Self, FeedError> {
         let inner = transport::connect(feed, config.connect_timeout).await?;
         Ok(Self {
@@ -92,6 +123,14 @@ impl PublicFeedClient {
     /// To detect login failure deterministically, drain `recv()` until
     /// you see either `Error` or a non-`Heartbeat` event before calling
     /// [`Self::subscribe`] — see the type-level example.
+    ///
+    /// # Errors
+    ///
+    /// - [`FeedError::Closed`] — client is already terminal.
+    /// - [`FeedError::Encode`] — JSON serialization of the login frame
+    ///   failed (should not happen in practice).
+    /// - [`FeedError::Io`] / [`FeedError::FrameTooLarge`] — write-side
+    ///   transport failure.
     pub async fn login(&mut self, session: &Session) -> Result<(), FeedError> {
         let frame = encode_login_frame(&LoginCommand {
             session_key: &session.session_key,
@@ -104,6 +143,18 @@ impl PublicFeedClient {
     /// was *written*, NOT that the server accepted the subscription —
     /// rate-limit / unknown-instrument / unauthorized rejections arrive
     /// asynchronously as [`PublicEvent::Error`] frames.
+    ///
+    /// See the [command module mapping table](crate::command#subscribe--event-mapping)
+    /// for which event variant each `SubscribeArgs` produces.
+    ///
+    /// # Errors
+    ///
+    /// - [`FeedError::Closed`] — client is already terminal.
+    /// - [`FeedError::Encode`] — JSON serialization failed.
+    /// - [`FeedError::Io`] / [`FeedError::FrameTooLarge`] — write-side
+    ///   transport failure.
+    #[doc(alias = "listen")]
+    #[doc(alias = "watch")]
     pub async fn subscribe(&mut self, args: SubscribeArgs) -> Result<(), FeedError> {
         let frame = encode_subscribe_frame("subscribe", &args).map_err(FeedError::Encode)?;
         self.send_line(frame).await
@@ -112,6 +163,10 @@ impl PublicFeedClient {
     /// Mirror of [`Self::subscribe`] for stopping a feed. Pass the same
     /// `SubscribeArgs` value you used to subscribe (the type derives
     /// `Eq + Hash` so callers can stash it).
+    ///
+    /// # Errors
+    ///
+    /// Same shape as [`Self::subscribe`].
     pub async fn unsubscribe(&mut self, args: SubscribeArgs) -> Result<(), FeedError> {
         let frame = encode_subscribe_frame("unsubscribe", &args).map_err(FeedError::Encode)?;
         self.send_line(frame).await
@@ -120,21 +175,26 @@ impl PublicFeedClient {
     /// Receive the next event.
     ///
     /// Returns `Ok(None)` on clean EOF (peer closed cleanly between
-    /// frames). Returns `Err(FeedError::Closed)` if the peer hung up
-    /// via abrupt RST mid-frame. Returns `Err(FeedError::Decode { .. })`
-    /// if the envelope JSON is malformed (terminal — fundamentally
-    /// broken stream). Returns `Err(FeedError::HeartbeatTimeout(..))`
-    /// if no frame arrived within the configured budget.
-    ///
-    /// Per-frame payload type mismatches surface as
+    /// frames). Per-frame payload type mismatches surface as
     /// [`PublicEvent::DecodeFailed`] — non-terminal — so a single bad
-    /// payload does not kill the connection.
+    /// payload does not kill the connection. Stray blank lines on the
+    /// wire (NDJSON keepalive convention) are skipped silently.
     ///
     /// All `Err(..)` and `Ok(None)` outcomes are terminal: the
     /// transport is dropped and every subsequent call returns
-    /// [`FeedError::Closed`]. Stray blank lines on the wire (NDJSON
-    /// keepalive convention) are skipped silently rather than producing
-    /// a `Decode` error.
+    /// [`FeedError::Closed`].
+    ///
+    /// # Errors
+    ///
+    /// - [`FeedError::Closed`] — client was already terminal, or peer
+    ///   hung up via abrupt RST mid-frame.
+    /// - [`FeedError::Decode`] — envelope JSON is malformed (terminal —
+    ///   fundamentally broken stream). Per-payload mismatches go to
+    ///   [`PublicEvent::DecodeFailed`] instead.
+    /// - [`FeedError::HeartbeatTimeout`] — no frame within
+    ///   `config.heartbeat_timeout`.
+    /// - [`FeedError::FrameTooLarge`] — frame exceeded 1 MiB.
+    /// - [`FeedError::Io`] — read-side transport failure.
     pub async fn recv(&mut self) -> Result<Option<PublicEvent>, FeedError> {
         let line = match self.recv_line().await? {
             None => return Ok(None),

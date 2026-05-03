@@ -4,6 +4,26 @@
 //! `\n`. The terminator is added by the codec at write time; this
 //! module only emits the JSON object body.
 //!
+//! Upstream protocol reference:
+//! [Subscribe/Unsubscribe Requests](https://www.nordnet.se/externalapi/docs/feeds#subscribeunsubscribe-requests).
+//!
+//! # Subscribe → event mapping
+//!
+//! Each [`SubscribeArgs`] variant produces exactly one
+//! [`crate::PublicEvent`] variant per server frame:
+//!
+//! | Subscribe                                         | Wire `t`         | Event                                  |
+//! |---------------------------------------------------|------------------|----------------------------------------|
+//! | [`SubscribeArgs::MarketData`] + [`MarketDataKind::Price`]         | `"price"`          | [`crate::PublicEvent::Price`]          |
+//! | [`SubscribeArgs::MarketData`] + [`MarketDataKind::Depth`]         | `"depth"`          | [`crate::PublicEvent::Depth`]          |
+//! | [`SubscribeArgs::MarketData`] + [`MarketDataKind::Trade`]         | `"trade"`          | [`crate::PublicEvent::Trade`]          |
+//! | [`SubscribeArgs::MarketData`] + [`MarketDataKind::TradingStatus`] | `"trading_status"` | [`crate::PublicEvent::TradingStatus`]  |
+//! | [`SubscribeArgs::Indicator`]                      | `"indicator"`    | [`crate::PublicEvent::Indicator`]      |
+//! | [`SubscribeArgs::News`]                           | `"news"`         | [`crate::PublicEvent::News`]           |
+//!
+//! The private feed has no subscribe API — see
+//! [`crate::PrivateFeedClient`] for the auto-push model.
+//!
 //! # Field ordering
 //!
 //! `serde_json` without the `preserve_order` feature uses `BTreeMap`
@@ -20,7 +40,8 @@ use serde::{Serialize, Serializer};
 ///
 /// Per the official Python `next-api-v2-examples` repo, `service` is
 /// always the literal string `"NEXTAPI"` (the public docs page omits
-/// the field but the reference impl always sends it).
+/// the field but the reference impl always sends it). See
+/// [Logging In to a Feed](https://www.nordnet.se/externalapi/docs/feeds#logging-in-to-a-feed).
 ///
 /// Internal — consumers call `client.login(&session)` rather than
 /// constructing this directly.
@@ -65,26 +86,68 @@ impl Serialize for LoginCommand<'_> {
 /// derive depends on `rust_decimal::Decimal: Hash` indirectly (no
 /// `Decimal` field today, but if one is ever added the derive must keep
 /// compiling — load-bearing for stash-and-reuse).
+///
+/// See the [module-level mapping table](crate::command#subscribe--event-mapping)
+/// for the variant → event correspondence.
+#[doc(alias = "subscribe")]
+#[doc(alias = "unsubscribe")]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SubscribeArgs {
-    /// Standard market data: price, depth, trade, trading_status.
+    /// Standard market data: price, depth, trade, trading_status. The
+    /// [`MarketDataKind`] selects which [`crate::PublicEvent`] variant
+    /// the server pushes.
+    ///
+    /// Wire shape: `{"t":"<kind>","m":<market>,"i":"<identifier>"}`. See
+    /// [Subscribe/Unsubscribe Requests](https://www.nordnet.se/externalapi/docs/feeds#subscribeunsubscribe-requests).
     MarketData {
         kind: MarketDataKind,
         market: i64,
         identifier: String,
     },
     /// Indicator subscriptions use a string `m` per Nordnet's docs.
+    /// Produces [`crate::PublicEvent::Indicator`].
+    ///
+    /// Wire shape: `{"t":"indicator","m":"<market>","i":"<identifier>"}`.
+    /// See [Indicator Events](https://www.nordnet.se/externalapi/docs/feeds#indicator-events).
+    #[doc(alias = "indicator")]
     Indicator { market: String, identifier: String },
     /// News uses `s` (source id) instead of `m`/`i`. `delay` is news-only
     /// per Nordnet (deprecated even there — kept for completeness).
+    /// Produces [`crate::PublicEvent::News`].
+    ///
+    /// Wire shape: `{"t":"news","s":<source_id>}` (or with optional
+    /// `"delay":<bool>`). See
+    /// [News Events](https://www.nordnet.se/externalapi/docs/feeds#news-events).
+    #[doc(alias = "news")]
     News { source_id: i64, delay: Option<bool> },
 }
 
+/// Selects which kind of market-data subscription to open. Used as a
+/// field on [`SubscribeArgs::MarketData`]; each variant maps 1:1 to a
+/// [`crate::PublicEvent`] payload type. The `Display`/wire string for
+/// each variant is the value sent in the `t` field.
+///
+/// See the [module-level mapping table](crate::command#subscribe--event-mapping).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MarketDataKind {
+    /// Tick-framed price updates. Produces [`crate::PublicEvent::Price`].
+    /// First frame is full; subsequent frames carry only changed fields.
+    /// See [Price Events](https://www.nordnet.se/externalapi/docs/feeds#price-events).
+    #[doc(alias = "price")]
     Price,
+    /// Order-book depth (5 levels). Produces [`crate::PublicEvent::Depth`].
+    /// See [Order Depth Events](https://www.nordnet.se/externalapi/docs/feeds#order-depth-events).
+    #[doc(alias = "depth")]
     Depth,
+    /// Public market trades (not own-account fills). Produces
+    /// [`crate::PublicEvent::Trade`]. See
+    /// [Trade Events](https://www.nordnet.se/externalapi/docs/feeds#trade-events).
+    #[doc(alias = "trade")]
     Trade,
+    /// Single-character status code (`C`, `R`, `D`, `X`, `U` per
+    /// Nordnet). Produces [`crate::PublicEvent::TradingStatus`]. See
+    /// [Trading Status Events](https://www.nordnet.se/externalapi/docs/feeds#trading-status-events).
+    #[doc(alias = "trading_status")]
     TradingStatus,
 }
 

@@ -4,6 +4,28 @@
 //! but the `data` payload schema differs per feed kind (public's `trade`
 //! is a market trade, private's `trade` is an own-account fill). To keep
 //! deserialization unambiguous, each feed has its own event enum.
+//!
+//! Upstream protocol references:
+//! [Public Feed Events](https://www.nordnet.se/externalapi/docs/feeds#public-feed-events) ·
+//! [Private Feed](https://www.nordnet.se/externalapi/docs/feeds#private-feed).
+//!
+//! # Wire-type → event mapping
+//!
+//! | Wire `type`        | [`PublicEvent`]                      | [`PrivateEvent`]                     |
+//! |--------------------|--------------------------------------|--------------------------------------|
+//! | `"heartbeat"`      | [`PublicEvent::Heartbeat`]           | [`PrivateEvent::Heartbeat`]          |
+//! | `"err"`            | [`PublicEvent::Error`]               | [`PrivateEvent::Error`]              |
+//! | `"price"`          | [`PublicEvent::Price`]               | —                                    |
+//! | `"depth"`          | [`PublicEvent::Depth`]               | —                                    |
+//! | `"trade"`          | [`PublicEvent::Trade`] (market)      | [`PrivateEvent::TradeRaw`] (fill)    |
+//! | `"trading_status"` | [`PublicEvent::TradingStatus`]       | —                                    |
+//! | `"indicator"`      | [`PublicEvent::Indicator`]           | —                                    |
+//! | `"news"`           | [`PublicEvent::News`]                | —                                    |
+//! | `"order"`          | —                                    | [`PrivateEvent::Order`]              |
+//! | _unknown_          | [`PublicEvent::Unknown`]             | [`PrivateEvent::Unknown`]            |
+//!
+//! For the inverse mapping (which [`crate::SubscribeArgs`] produces
+//! which event), see the [command module](crate::command#subscribe--event-mapping).
 
 use serde::Deserialize;
 use serde_json::Value;
@@ -13,19 +35,55 @@ use crate::private;
 use crate::public;
 
 /// Inbound event on the public market-data feed.
+///
+/// See the [module-level mapping table](crate::event#wire-type--event-mapping)
+/// for the full wire-type → variant correspondence.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PublicEvent {
     /// Server-to-client keep-alive (every 5s when idle). Empty payload;
-    /// any extra fields in `data` are forward-compat-ignored.
+    /// any extra fields in `data` are forward-compat-ignored. See
+    /// [Heartbeat Events](https://www.nordnet.se/externalapi/docs/feeds#heartbeat-events).
+    #[doc(alias = "heartbeat")]
     Heartbeat,
     /// Server-side error for a previous command. The connection is
-    /// still alive — caller decides whether to reconnect/abort.
+    /// still alive — caller decides whether to reconnect/abort. See
+    /// [Error Events](https://www.nordnet.se/externalapi/docs/feeds#error-events).
+    #[doc(alias = "err")]
     Error(ServerError),
+    /// Tick-framed price update. Produced by
+    /// [`crate::SubscribeArgs::MarketData`] with
+    /// [`crate::MarketDataKind::Price`]. First frame is full;
+    /// subsequent frames carry only changed fields. See
+    /// [Price Events](https://www.nordnet.se/externalapi/docs/feeds#price-events).
+    #[doc(alias = "price")]
     Price(public::Price),
+    /// Order-book depth (5 levels). Produced by
+    /// [`crate::SubscribeArgs::MarketData`] with
+    /// [`crate::MarketDataKind::Depth`]. See
+    /// [Order Depth Events](https://www.nordnet.se/externalapi/docs/feeds#order-depth-events).
+    #[doc(alias = "depth")]
     Depth(public::Depth),
+    /// Public market trade (not own-account fill — those land on the
+    /// private feed). Produced by [`crate::SubscribeArgs::MarketData`]
+    /// with [`crate::MarketDataKind::Trade`]. See
+    /// [Trade Events](https://www.nordnet.se/externalapi/docs/feeds#trade-events).
+    #[doc(alias = "trade")]
     Trade(public::Trade),
+    /// Single-character trading-status code (`C`, `R`, `D`, `X`, `U`).
+    /// Produced by [`crate::SubscribeArgs::MarketData`] with
+    /// [`crate::MarketDataKind::TradingStatus`]. See
+    /// [Trading Status Events](https://www.nordnet.se/externalapi/docs/feeds#trading-status-events).
+    #[doc(alias = "trading_status")]
     TradingStatus(public::TradingStatus),
+    /// Indicator value (e.g. OMXS30). Produced by
+    /// [`crate::SubscribeArgs::Indicator`]. See
+    /// [Indicator Events](https://www.nordnet.se/externalapi/docs/feeds#indicator-events).
+    #[doc(alias = "indicator")]
     Indicator(public::Indicator),
+    /// News item. Not tick-framed — every frame is fully populated.
+    /// Produced by [`crate::SubscribeArgs::News`]. See
+    /// [News Events](https://www.nordnet.se/externalapi/docs/feeds#news-events).
+    #[doc(alias = "news")]
     News(public::News),
     /// Unknown wire `type`. Forward-compat: future event kinds — and
     /// malformed `err` frames missing the required `msg` field — land
@@ -129,22 +187,32 @@ impl PublicEvent {
 /// Inbound event on the private account/order feed.
 ///
 /// The private feed is auto-pushed after [`crate::PrivateFeedClient::login`] —
-/// no subscription is required.
+/// no subscription is required. See
+/// [Private Feed](https://www.nordnet.se/externalapi/docs/feeds#private-feed).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PrivateEvent {
-    /// Server-to-client keep-alive (every 5s when idle).
+    /// Server-to-client keep-alive (every 5s when idle). See
+    /// [Heartbeat Events](https://www.nordnet.se/externalapi/docs/feeds#heartbeat-events).
+    #[doc(alias = "heartbeat")]
     Heartbeat,
-    /// Server-side error. Connection still alive.
+    /// Server-side error. Connection still alive. See
+    /// [Error Events](https://www.nordnet.se/externalapi/docs/feeds#error-events).
+    #[doc(alias = "err")]
     Error(ServerError),
     /// Order lifecycle event (created / modified / filled / cancelled).
     ///
     /// Boxed to reduce the enum's overall stack footprint
-    /// (`large_enum_variant` lint — `OrderEvent` is ~320 bytes).
+    /// (`large_enum_variant` lint — `OrderEvent` is ~320 bytes). See
+    /// [Order Notification Events](https://www.nordnet.se/externalapi/docs/feeds#order-notification-events).
+    #[doc(alias = "order")]
     Order(Box<private::OrderEvent>),
-    /// Untyped trade payload — schema is not in the public Nordnet
-    /// docs (Decision §12). Future revisions may type this; the `Raw`
-    /// suffix is the in-API signal that this is the only payload
-    /// without a typed struct.
+    /// Own-account fill — untyped payload. The trade-event schema for
+    /// the private feed is not in the public Nordnet docs (Decision
+    /// §12); this variant carries the raw `data` object so consumers
+    /// can inspect fields they need. The `Raw` suffix signals that this
+    /// is the only payload without a typed struct. See
+    /// [Trade Notification Events](https://www.nordnet.se/externalapi/docs/feeds#trade-notification-events).
+    #[doc(alias = "trade")]
     TradeRaw(Value),
     /// Unknown wire `type`. Forward-compat: future event kinds — and
     /// malformed `err` frames missing the required `msg` field — land

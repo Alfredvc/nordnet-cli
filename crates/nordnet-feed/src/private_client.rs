@@ -1,4 +1,22 @@
 //! Private account/order feed client.
+//!
+//! [`PrivateFeedClient`] owns one TLS connection to
+//! `private.feed.nordnet.se`. Unlike [`crate::PublicFeedClient`], the
+//! private feed has no subscribe API: a successful login implicitly
+//! enrolls the session for all account events (orders + own-account
+//! fills). The interaction model is:
+//!
+//! 1. [`PrivateFeedClient::connect`] — open TCP+TLS, configure socket
+//!    options, apply connect timeout.
+//! 2. [`PrivateFeedClient::login`] — fire-and-forget; failure surfaces
+//!    asynchronously via [`crate::PrivateEvent::Error`] in the recv loop.
+//! 3. [`PrivateFeedClient::recv`] in a loop — receives auto-pushed
+//!    [`crate::PrivateEvent::Order`] and [`crate::PrivateEvent::TradeRaw`]
+//!    events, plus heartbeats, server errors, and `DecodeFailed` soft
+//!    failures (non-terminal).
+//!
+//! Any [`crate::FeedError`] from any method is terminal; the client
+//! transitions to `Closed` and a new client is required to continue.
 
 use std::time::Duration;
 
@@ -61,11 +79,25 @@ pub struct PrivateFeedClient {
 
 impl PrivateFeedClient {
     /// Connect using [`FeedConfig::default`] tunables.
+    ///
+    /// # Errors
+    ///
+    /// - [`FeedError::ConnectTimeout`] — TCP+TLS handshake exceeded the
+    ///   default 10s budget.
+    /// - [`FeedError::Tls`] — TLS handshake / certificate failure.
+    /// - [`FeedError::Io`] — raw socket / network failure.
     pub async fn connect(feed: &Feed) -> Result<Self, FeedError> {
         Self::connect_with(feed, &FeedConfig::default()).await
     }
 
     /// Connect with explicit tunables (see [`FeedConfig`]).
+    ///
+    /// # Errors
+    ///
+    /// - [`FeedError::ConnectTimeout`] — combined TCP+TLS handshake
+    ///   exceeded `config.connect_timeout`.
+    /// - [`FeedError::Tls`] — TLS handshake / certificate failure.
+    /// - [`FeedError::Io`] — raw socket / network failure.
     pub async fn connect_with(feed: &Feed, config: &FeedConfig) -> Result<Self, FeedError> {
         let inner = transport::connect(feed, config.connect_timeout).await?;
         Ok(Self {
@@ -80,6 +112,14 @@ impl PrivateFeedClient {
     /// To detect login failure deterministically, drain `recv()` until
     /// you see either `Error` or a non-`Heartbeat` event before relying
     /// on the account stream.
+    ///
+    /// # Errors
+    ///
+    /// - [`FeedError::Closed`] — client is already terminal.
+    /// - [`FeedError::Encode`] — JSON serialization of the login frame
+    ///   failed (should not happen in practice).
+    /// - [`FeedError::Io`] / [`FeedError::FrameTooLarge`] — write-side
+    ///   transport failure.
     pub async fn login(&mut self, session: &Session) -> Result<(), FeedError> {
         let frame = encode_login_frame(&LoginCommand {
             session_key: &session.session_key,
@@ -90,19 +130,26 @@ impl PrivateFeedClient {
 
     /// Receive the next event.
     ///
-    /// `Ok(None)` on clean EOF between frames. `Err(FeedError::Closed)`
-    /// on abrupt RST mid-frame. `Err(FeedError::Decode { .. })` on
-    /// malformed envelope JSON (terminal — fundamentally broken
-    /// stream). `Err(FeedError::HeartbeatTimeout(..))` if no frame
-    /// arrived within the configured budget.
-    ///
-    /// Per-frame payload type mismatches surface as
-    /// [`PrivateEvent::DecodeFailed`] — non-terminal — so a single bad
-    /// payload does not kill the connection.
+    /// `Ok(None)` on clean EOF between frames. Per-frame payload type
+    /// mismatches surface as [`PrivateEvent::DecodeFailed`] —
+    /// non-terminal — so a single bad payload does not kill the
+    /// connection. Stray blank lines are skipped silently.
     ///
     /// All `Err(..)` and `Ok(None)` outcomes are terminal: the
     /// transport is dropped and every subsequent call returns
-    /// [`FeedError::Closed`]. Stray blank lines are skipped silently.
+    /// [`FeedError::Closed`].
+    ///
+    /// # Errors
+    ///
+    /// - [`FeedError::Closed`] — client was already terminal, or peer
+    ///   hung up via abrupt RST mid-frame.
+    /// - [`FeedError::Decode`] — envelope JSON is malformed (terminal —
+    ///   fundamentally broken stream). Per-payload mismatches go to
+    ///   [`PrivateEvent::DecodeFailed`] instead.
+    /// - [`FeedError::HeartbeatTimeout`] — no frame within
+    ///   `config.heartbeat_timeout`.
+    /// - [`FeedError::FrameTooLarge`] — frame exceeded 1 MiB.
+    /// - [`FeedError::Io`] — read-side transport failure.
     pub async fn recv(&mut self) -> Result<Option<PrivateEvent>, FeedError> {
         let line = match self.recv_line().await? {
             None => return Ok(None),

@@ -1,3 +1,19 @@
+//! Error types for the feed clients.
+//!
+//! Two distinct error surfaces:
+//!
+//! - [`FeedError`] — Rust-level transport / framing failures returned by
+//!   [`crate::PublicFeedClient`] and [`crate::PrivateFeedClient`] methods.
+//!   Every variant is **terminal**: the client transitions to `Closed`
+//!   and every subsequent call returns [`FeedError::Closed`].
+//! - [`ServerError`] — server-side protocol error delivered **in-band**
+//!   as a successful event ([`crate::PublicEvent::Error`] /
+//!   [`crate::PrivateEvent::Error`]). The connection stays alive; the
+//!   caller decides whether to recover or abort.
+//!
+//! See [Error Events](https://www.nordnet.se/externalapi/docs/feeds#error-events)
+//! in the upstream Nordnet docs for the wire shape of in-band errors.
+
 use std::time::Duration;
 use thiserror::Error;
 
@@ -6,6 +22,13 @@ use thiserror::Error;
 /// avoid leaking session keys / order details into log pipelines.
 pub(crate) const MAX_LINE_FOR_DISPLAY: usize = 256;
 
+/// Transport / framing / lifecycle errors. Every variant is terminal —
+/// the client transitions to `Closed` and every subsequent call returns
+/// [`FeedError::Closed`]. To resume, construct a new client and re-login.
+///
+/// For server-side **protocol** errors (rejected subscribe, unauthorized
+/// instrument, rate limit) see [`ServerError`] — those arrive in-band as
+/// event variants, not as `FeedError`, because the connection stays alive.
 #[derive(Debug, Error)]
 pub enum FeedError {
     /// TLS handshake / negotiation error. Surfaced separately from
@@ -67,8 +90,15 @@ pub(crate) fn redact_line(line: String) -> String {
 }
 
 /// A server-side error frame payload. Surfaced as a successful event
-/// (`Event::Error(ServerError)`) — not as a Rust error type — because the
-/// server communicates errors in-band over the feed protocol.
+/// ([`crate::PublicEvent::Error`] / [`crate::PrivateEvent::Error`]) — not
+/// as a Rust error type — because the server communicates errors in-band
+/// over the feed protocol. The connection stays alive after one of these
+/// arrives; the caller decides whether to recover or abort.
+///
+/// Wire shape: `{"type":"err","data":{"msg":"...","cmd":{...}}}`. See
+/// [Error Events](https://www.nordnet.se/externalapi/docs/feeds#error-events)
+/// in the upstream Nordnet docs.
+#[doc(alias = "err")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ServerError {
     pub msg: String,

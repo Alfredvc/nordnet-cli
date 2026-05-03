@@ -6,7 +6,8 @@ use std::time::Duration;
 /// Default budget shared between TCP connect and TLS handshake.
 pub const DEFAULT_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 /// Default heartbeat-watchdog budget. Nordnet sends a server-to-client
-/// heartbeat every 5s when idle (per spec); 15s = 3× margin.
+/// heartbeat every 5s when idle (per spec); 15s = 3× margin. See
+/// [Heartbeat Events](https://www.nordnet.se/externalapi/docs/feeds#heartbeat-events).
 pub const DEFAULT_HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(15);
 
 /// Tunables applied at connect time and on every `recv()`.

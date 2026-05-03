@@ -21,6 +21,7 @@ reqwest = { version = "0.13.3", default-features = false, features = ["json", "r
 tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread", "time"] }
 tokio-rustls = "0.26"
 tokio-util = { version = "0.7", features = ["codec"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink"] }
 
 # TLS
 rustls = "0.23"

@@ -12,6 +12,7 @@ tokio-util = { workspace = true }
 tokio-rustls = { workspace = true }
 rustls = { workspace = true }
 webpki-roots = { workspace = true }
+futures-util = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 rust_decimal = { workspace = true }

@@ -18,3 +18,6 @@ pub mod public_client;
 
 pub use command::{LoginCommand, MarketDataKind, SubscribeArgs};
 pub use error::{FeedError, ServerError};
+pub use event::{PrivateEvent, PublicEvent};
+pub use private_client::PrivateFeedClient;
+pub use public_client::PublicFeedClient;

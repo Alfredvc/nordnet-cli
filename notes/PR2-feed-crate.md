@@ -210,3 +210,148 @@ Variants only in the seed (not in HTML REST docs, feed-wire only): `AON`, `FOK`,
 - `cargo fmt --check` — green
 - `cargo clippy --workspace --all-targets -- -D warnings` — green
 - `cargo test --workspace` — 255 tests pass (unchanged; phase 2.4 owns event tests)
+
+---
+
+## Phase 2.3 Agent C — public_client + PublicEvent
+
+**Date:** 2026-05-02
+
+### What landed
+
+Implemented `crates/nordnet-feed/src/event.rs` (PublicEvent + envelope decoder) and
+`crates/nordnet-feed/src/public_client.rs` (PublicFeedClient). Added `futures-util` as
+a workspace dependency (needed for `SinkExt` + `StreamExt` on `Framed`).
+
+#### `event.rs`
+
+- `PublicEvent` enum with 8 variants: `Heartbeat`, `Error(ServerError)`, `Price`,
+  `Depth`, `Trade`, `TradingStatus`, `Indicator`, `News`, `Unknown { kind, data }`.
+- `Envelope` struct (pub(crate)) with `#[serde(rename = "type")]` and
+  `#[serde(default)]` on `data` — handles frames with no `data` field.
+- `PublicEvent::from_envelope` — switches on `env.kind`, matches 7 known event types;
+  falls through to `Unknown` for anything else (forward-compat).
+- `Heartbeat` arm matches `"heartbeat"` and ignores all data fields entirely — per spec
+  §"Heartbeat", extra fields like `{"server_time":123}` are ignored (forward-compat),
+  and the heartbeat does NOT fall through to `Unknown`.
+- `Error` arm: `ServerError` does not implement `Deserialize` (owned by `error.rs`,
+  which this phase cannot touch). Fields extracted manually from `serde_json::Value`.
+- All other known arms use `serde_json::from_value(env.data)?` for typed deserialization.
+- File ends with `// === Agent D will append PrivateEvent below this line ===` comment.
+
+#### `public_client.rs`
+
+- `PublicFeedClient` wraps `enum Inner { Plain(Framed<TcpStream, LinesCodec>), Tls(Box<Framed<TlsStream<TcpStream>, LinesCodec>>) }`.
+  The `Tls` variant is boxed to satisfy clippy's `large_enum_variant` lint (Plain = 144
+  bytes, Tls = 1208 bytes unboxed).
+- `connect(feed: &Feed)` — honors `feed.encrypted: bool` (Decision §3; not port-443
+  heuristic). Builds `rustls::ClientConfig` with `webpki_roots::TLS_SERVER_ROOTS`;
+  converts `feed.hostname` to `rustls::pki_types::ServerName<'static>` via
+  `String::try_into()` with `InvalidDnsNameError` mapped to `FeedError::Io`.
+- `login()` — fire-and-forget (Decision §4). Writes the login frame, returns `Ok(())`.
+  Doc comment explains the deterministic-detection pattern from spec §"Login command".
+- `subscribe()` / `unsubscribe()` — same args type (`SubscribeArgs`), different cmd string.
+  Doc comment explains server-rejection arrives asynchronously via `recv()`.
+- `recv()` — returns `Ok(None)` on clean EOF (Stream ends), `Err(FeedError::Closed)` for
+  mid-frame EOF (UnexpectedEof from I/O). Decodes line → `Envelope` → `PublicEvent`.
+- `map_lines_err` (pub(crate)) — maps `LinesCodecError::Io(UnexpectedEof)` to
+  `FeedError::Closed`, other I/O errors to `FeedError::Io`, and
+  `LinesCodecError::MaxLineLengthExceeded` to `FeedError::FrameTooLarge { bytes: MAX_FRAME_BYTES + 1 }`.
+  The `bytes` value is `MAX_FRAME_BYTES + 1` because `LinesCodec` doesn't expose the
+  actual offending byte count — this is a known limitation documented in the spec.
+
+#### `lib.rs` additions
+
+Added two re-exports at the bottom of the existing `pub use` block:
+```rust
+pub use event::PublicEvent;
+pub use public_client::PublicFeedClient;
+```
+
+### Workspace dependency added: `futures-util`
+
+`futures-util` was absent from `[workspace.dependencies]`. Added:
+```toml
+futures-util = { version = "0.3", default-features = false, features = ["sink"] }
+```
+And to `crates/nordnet-feed/Cargo.toml`:
+```toml
+futures-util = { workspace = true }
+```
+Note: `default-features = false` drops `async-await`, `std`, etc. The `sink` feature is
+required for `SinkExt` (used by `Framed::send`). `StreamExt` has no feature gate in
+futures-util 0.3.
+
+### Deviations from task template
+
+- `ServerError` manual deserialization: The task template showed
+  `serde_json::from_value(env.data)?` for the `"err"` arm. This requires `ServerError:
+  Deserialize`, but `error.rs` is off-limits. Fields are extracted manually from
+  `serde_json::Value` instead. Behavior is identical.
+- `Inner::Tls` is boxed: `Box<Framed<TlsStream<TcpStream>, LinesCodec>>` rather than
+  bare `Framed<TlsStream<TcpStream>, LinesCodec>`. This satisfies clippy's
+  `large_enum_variant` lint (unboxed = 1208 bytes vs. 144-byte Plain variant). Rust
+  auto-derefs `Box<T>` in match arms so call sites are unchanged.
+
+### Gate results
+
+- `cargo build --workspace` — green
+- `cargo fmt --check` — green
+- `cargo clippy --workspace --all-targets -- -D warnings` — green
+- `cargo test --workspace` — 255 tests pass (unchanged; phase 2.4 owns event/client tests)
+
+---
+
+## Phase 2.3 Agent D — private_client + PrivateEvent
+
+**Date:** 2026-05-02
+
+### What landed
+
+Implemented `crates/nordnet-feed/src/private_client.rs` (PrivateFeedClient) and appended
+`PrivateEvent` to `crates/nordnet-feed/src/event.rs`.
+
+#### `event.rs` consolidation (coordination cleanup)
+
+Agent C left the `"err"` arm in `PublicEvent::from_envelope` as inline manual extraction
+(because `ServerError` does not implement `Deserialize` and `error.rs` is off-limits). As
+the second author of `event.rs`, Agent D extracted this into a shared `pub(crate) fn
+parse_server_error(data: Value) -> ServerError` helper placed just below the `Envelope`
+struct. Both `PublicEvent::from_envelope` and `PrivateEvent::from_envelope` now call this
+helper — no duplication, behavior identical to what Agent C shipped.
+
+#### `PrivateEvent` enum (event.rs, appended)
+
+Variants: `Heartbeat`, `Error(ServerError)`, `Order(Box<private::OrderEvent>)`,
+`TradeRaw(Value)`, `Unknown { kind: String, data: Value }`.
+
+`Order` is boxed (`Box<private::OrderEvent>`) to satisfy clippy's `large_enum_variant`
+lint — `OrderEvent` is ~320 bytes vs. the next-largest variant at ~56 bytes. Mirrors the
+same boxing rationale used for `Inner::Tls` in the public client (unboxed = 1208 bytes
+vs. 144-byte Plain). Consumers pattern-match as normal; Rust auto-derefs the Box.
+
+`from_envelope` routes `"order"` → `Order(Box::new(serde_json::from_value(env.data)?))`
+and `"trade"` → `TradeRaw(env.data)` (schema not in public Nordnet docs, Decision §12).
+
+#### `private_client.rs` (PrivateFeedClient)
+
+- Same `Inner { Plain, Tls(Box<...>) }` structure as `PublicFeedClient`.
+- `connect(feed: &Feed)` — honors `feed.encrypted: bool` (Decision §3).
+- `login()` — fire-and-forget. Writes login frame via `encode_login_frame`, returns `Ok(())`.
+- `recv()` — returns `Ok(None)` on clean EOF, `Err(FeedError::Closed)` on mid-frame EOF.
+- NO `subscribe` / `unsubscribe` methods — private feed is auto-push after login (Decision §13).
+- Imports `map_lines_err` from `public_client` via `pub(crate)` visibility — not duplicated.
+
+#### `lib.rs` additions
+
+Consolidated `pub use event::PublicEvent` and new `pub use event::PrivateEvent` into a
+single line `pub use event::{PrivateEvent, PublicEvent}`. Added `pub use
+private_client::PrivateFeedClient`. cargo fmt reordered the private_client line after
+public_client alphabetically — accepted.
+
+### Gate results
+
+- `cargo build --workspace` — green
+- `cargo fmt --check` — green
+- `cargo clippy --workspace --all-targets -- -D warnings` — green
+- `cargo test --workspace` — 255 tests pass (unchanged; phase 2.4 owns event/client tests)

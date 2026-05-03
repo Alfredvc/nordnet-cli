@@ -1,0 +1,9 @@
+shared-version = true
+consolidate-commits = true
+publish = false
+push = true
+tag = true
+pre-release-commit-message = "chore: release v{{version}}"
+tag-name = "v{{version}}"
+tag-message = "v{{version}}"
+pre-release-hook = ["sh", "-c", "git-cliff --tag {{version}} -o CHANGELOG.md && git add CHANGELOG.md"]

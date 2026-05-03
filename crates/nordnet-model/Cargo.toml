@@ -1,11 +1,18 @@
 [package]
 name = "nordnet-model"
-version = "0.1.0"
+description = "Pure data types and crypto for the Nordnet External API v2 (no I/O)."
+readme = "README.md"
+keywords = ["nordnet", "trading", "finance", "stocks", "ed25519"]
+categories = ["finance", "data-structures"]
+version.workspace = true
 edition.workspace = true
 license.workspace = true
-rust-version.workspace = true
+authors.workspace = true
 repository.workspace = true
-description = "Pure data types and crypto for the Nordnet External API v2 (no I/O)."
+rust-version.workspace = true
+
+[lints]
+workspace = true
 
 [dependencies]
 serde = { workspace = true }

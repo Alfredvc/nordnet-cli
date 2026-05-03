@@ -1,11 +1,18 @@
 [package]
 name = "nordnet-cli"
-version = "0.1.0"
+description = "Agent-friendly command-line interface for the Nordnet External API."
+readme = "README.md"
+keywords = ["nordnet", "trading", "cli", "finance", "stocks"]
+categories = ["command-line-utilities", "finance"]
+version.workspace = true
 edition.workspace = true
 license.workspace = true
-rust-version.workspace = true
+authors.workspace = true
 repository.workspace = true
-description = "Agent-friendly command-line interface for the Nordnet External API."
+rust-version.workspace = true
+
+[lints]
+workspace = true
 
 [[bin]]
 name = "nordnet"
@@ -21,8 +28,8 @@ default = ["orders-cli"]
 orders-cli = []
 
 [dependencies]
-nordnet-api = { path = "../nordnet-api" }
-nordnet-model = { path = "../nordnet-model" }
+nordnet-api = { path = "../nordnet-api", version = "0.1" }
+nordnet-model = { path = "../nordnet-model", version = "0.1" }
 clap = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }

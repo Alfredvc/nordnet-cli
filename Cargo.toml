@@ -12,6 +12,7 @@ members = [
 edition = "2021"
 license = "MIT OR Apache-2.0"
 rust-version = "1.80"
+repository = "https://github.com/Alfredvc/nordnet-cli"
 
 # Pinned to current stable releases (verified against crates.io).
 # See PROCESS.md Phase 0 for rationale.

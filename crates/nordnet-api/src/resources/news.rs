@@ -30,7 +30,7 @@
 
 use crate::client::Client;
 use crate::error::Error;
-use crate::models::news::{NewsArticle, NewsId, NewsSource};
+use nordnet_model::models::news::{NewsArticle, NewsId, NewsSource};
 
 impl Client {
     /// `GET /news/{item_id}` — Retrieve a news article by ID.

@@ -7,21 +7,26 @@ rust-version.workspace = true
 description = "Typed REST bindings for the Nordnet External API v2."
 
 [dependencies]
+nordnet-model = { path = "../nordnet-model" }
 reqwest = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_urlencoded = { workspace = true }
 thiserror = { workspace = true }
-ed25519-dalek = { workspace = true }
-ssh-key = { workspace = true }
-base64 = { workspace = true }
 rust_decimal = { workspace = true }
 time = { workspace = true }
 
 [dev-dependencies]
 wiremock = { workspace = true }
 pretty_assertions = { workspace = true }
+# `ssh-key` and `base64` are exercised by the login-flow integration
+# tests (constructing an OpenSSH PEM in-test and asserting the
+# `Authorization: Basic <b64(...)>` header). Production code in this
+# crate doesn't touch either crate — those primitives live in
+# `nordnet-model`.
+ssh-key = { workspace = true }
+base64 = { workspace = true }
 # `test-util` enables `#[tokio::test(start_paused = true)]` so the 429/503
 # retry tests advance virtual time instead of sleeping for real seconds.
 tokio = { workspace = true, features = ["test-util"] }

@@ -34,7 +34,7 @@
 
 use crate::client::Client;
 use crate::error::Error;
-use crate::models::instrument_search::{
+use nordnet_model::models::instrument_search::{
     AttributeResults, BullBearListResults, MinifutureListResults, OptionListResults,
     StocklistResults, UnlimitedTurboListResults,
 };

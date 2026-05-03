@@ -6,11 +6,11 @@
 //! `crate::cmd::orders_read::Cmd`.
 
 use clap::{Args, Subcommand};
-use nordnet_api::ids::{AccountId, MarketId, OrderId, TradableId};
-use nordnet_api::models::orders::{
+use nordnet_model::ids::{AccountId, MarketId, OrderId, TradableId};
+use nordnet_model::models::orders::{
     ModifyOrderRequest, OrderActivationCondition, OrderSide, OrderType, PlaceOrderRequest,
 };
-use nordnet_api::models::shared::Currency;
+use nordnet_model::models::shared::Currency;
 use rust_decimal::Decimal;
 use std::str::FromStr;
 

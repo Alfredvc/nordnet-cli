@@ -6,8 +6,8 @@
 //! Layer 2 — Wiremock integration: every operation is exercised against a
 //! mock server using the corresponding fixture as the response body.
 
-use nordnet_api::models::countries::Country;
 use nordnet_api::Client;
+use nordnet_model::models::countries::Country;
 use pretty_assertions::assert_eq;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};

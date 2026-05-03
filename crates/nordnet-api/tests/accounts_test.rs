@@ -13,17 +13,17 @@
 //!    the 204 No Content -> empty Vec mapping. `list_account_trades`
 //!    asserts the `days` query param is forwarded.
 
-use nordnet_api::ids::{AccountId, MarketId, OrderId, TradableId};
-use nordnet_api::models::accounts::{
-    Account, AccountInfo, AccountTransactionsToday, Amount, Ledger, LedgerInformation, Position,
-    PositionInstrument, Reserved, TradableRef, Trade,
-};
-use nordnet_api::models::shared::Currency;
 use nordnet_api::resources::accounts::{
     AccountInfoQuery, ListAccountTradesQuery, ListAccountsQuery, ListPositionsQuery,
     ReturnsTodayQuery,
 };
 use nordnet_api::{Client, Error};
+use nordnet_model::ids::{AccountId, MarketId, OrderId, TradableId};
+use nordnet_model::models::accounts::{
+    Account, AccountInfo, AccountTransactionsToday, Amount, Ledger, LedgerInformation, Position,
+    PositionInstrument, Reserved, TradableRef, Trade,
+};
+use nordnet_model::models::shared::Currency;
 use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
 use time::macros::date;

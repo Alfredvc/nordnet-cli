@@ -4,9 +4,9 @@
 //! 1. Fixture roundtrip — every fixture parses and re-serializes identically.
 //! 2. Wiremock integration — every op is called against a mock server.
 
-use nordnet_api::ids::TickSizeId;
-use nordnet_api::models::tick_sizes::TicksizeTable;
 use nordnet_api::{Client, Error};
+use nordnet_model::ids::TickSizeId;
+use nordnet_model::models::tick_sizes::TicksizeTable;
 use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
 use wiremock::matchers::{method, path};

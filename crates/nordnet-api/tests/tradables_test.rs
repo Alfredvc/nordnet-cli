@@ -13,12 +13,12 @@
 //!    asserts the `count` query string is forwarded when set and omitted
 //!    when not.
 
-use nordnet_api::ids::{MarketId, TradableId};
-use nordnet_api::models::tradables::{
+use nordnet_api::{Client, Error};
+use nordnet_model::ids::{MarketId, TradableId};
+use nordnet_model::models::tradables::{
     AllowedOrderType, CalendarDay, PublicTrade, TradableEligibility, TradableInfo, TradableKey,
     TradablePublicTrades,
 };
-use nordnet_api::{Client, Error};
 use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
 use wiremock::matchers::{method, path, query_param};

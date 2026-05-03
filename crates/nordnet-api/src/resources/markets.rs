@@ -24,8 +24,8 @@
 
 use crate::client::Client;
 use crate::error::Error;
-use crate::ids::MarketId;
-use crate::models::markets::Market;
+use nordnet_model::ids::MarketId;
+use nordnet_model::models::markets::Market;
 
 impl Client {
     /// `GET /markets` — Returns information about all tradable markets.

@@ -12,13 +12,13 @@
 //!    `search_optionlist_pairs` asserts the required query parameters
 //!    are forwarded.
 
-use nordnet_api::ids::{InstrumentId, IssuerId, MarketId, TickSizeId};
-use nordnet_api::models::instrument_search::{
+use nordnet_api::resources::instrument_search::{AttributesQuery, ListSearchQuery, StocklistQuery};
+use nordnet_api::{Client, Error};
+use nordnet_model::ids::{InstrumentId, IssuerId, MarketId, TickSizeId};
+use nordnet_model::models::instrument_search::{
     AttributeResults, BullBearListResults, MinifutureListResults, OptionListResults,
     StocklistResults, UnlimitedTurboListResults,
 };
-use nordnet_api::resources::instrument_search::{AttributesQuery, ListSearchQuery, StocklistQuery};
-use nordnet_api::{Client, Error};
 use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
 use wiremock::matchers::{method, path, query_param};

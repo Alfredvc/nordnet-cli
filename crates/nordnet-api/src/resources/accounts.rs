@@ -43,8 +43,8 @@
 
 use crate::client::Client;
 use crate::error::Error;
-use crate::ids::AccountId;
-use crate::models::accounts::{
+use nordnet_model::ids::AccountId;
+use nordnet_model::models::accounts::{
     Account, AccountInfo, AccountTransactionsToday, LedgerInformation, Position, Trade,
 };
 

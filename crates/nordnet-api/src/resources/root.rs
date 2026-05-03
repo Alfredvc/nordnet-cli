@@ -4,7 +4,7 @@
 
 use crate::client::Client;
 use crate::error::Error;
-use crate::models::root::Status;
+use nordnet_model::models::root::Status;
 
 impl Client {
     /// `GET /api/2` — Returns information about the system status.

@@ -1,8 +1,8 @@
 //! `nordnet instruments` — instrument lookups + leverage queries.
 
 use clap::{Args, Subcommand};
-use nordnet_api::ids::{InstrumentId, IssuerId};
 use nordnet_api::resources::instruments::LeveragesQuery;
+use nordnet_model::ids::{InstrumentId, IssuerId};
 
 /// Subcommands for the `instruments` namespace.
 #[derive(Debug, Subcommand)]

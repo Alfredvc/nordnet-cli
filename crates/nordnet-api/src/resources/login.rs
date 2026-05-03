@@ -18,17 +18,15 @@
 
 use crate::client::Client;
 use crate::error::Error;
-use crate::models::login::{
-    ApiKeyLoginResponse, ApiKeyStartLoginRequest, ApiKeyVerifyLoginRequest, ChallengeResponse,
-    LoggedInStatus,
-};
+use nordnet_model::auth::{ApiKeyStartLoginRequest, ApiKeyVerifyLoginRequest, ChallengeResponse};
+use nordnet_model::models::login::{ApiKeyLoginResponse, LoggedInStatus};
 
 impl Client {
     /// `POST /login/start` — Start the authentication challenge.
     ///
     /// Returns a [`ChallengeResponse`] whose `challenge` field must be
     /// signed with the caller's RSA private key (see
-    /// [`crate::auth::sign_challenge`]) before being passed to
+    /// [`nordnet_model::auth::sign_challenge`]) before being passed to
     /// [`Client::verify_login`]. The challenge is valid for 30 seconds.
     ///
     /// # Errors
@@ -46,7 +44,7 @@ impl Client {
     /// challenge.
     ///
     /// On success the returned [`ApiKeyLoginResponse`] carries the
-    /// `session_key`. Convert it to a [`crate::auth::Session`] via
+    /// `session_key`. Convert it to a [`nordnet_model::auth::Session`] via
     /// [`ApiKeyLoginResponse::to_session`] and attach it with
     /// [`Client::with_session`] for subsequent authenticated calls.
     ///

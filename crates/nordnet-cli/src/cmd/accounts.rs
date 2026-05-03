@@ -1,11 +1,11 @@
 //! `nordnet accounts` — account info, ledgers, positions, returns, trades.
 
 use clap::{Args, Subcommand};
-use nordnet_api::ids::AccountId;
 use nordnet_api::resources::accounts::{
     AccountInfoQuery, ListAccountTradesQuery, ListAccountsQuery, ListPositionsQuery,
     ReturnsTodayQuery,
 };
+use nordnet_model::ids::AccountId;
 
 /// Subcommands for the `accounts` namespace.
 #[derive(Debug, Subcommand)]

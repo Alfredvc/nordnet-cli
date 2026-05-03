@@ -6,7 +6,7 @@
 //! `crate::cmd::orders_write::Cmd`.
 
 use clap::{Args, Subcommand};
-use nordnet_api::ids::AccountId;
+use nordnet_model::ids::AccountId;
 
 /// Read-side subcommands for the `nordnet orders` namespace.
 #[derive(Debug, Subcommand)]

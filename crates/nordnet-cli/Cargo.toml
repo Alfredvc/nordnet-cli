@@ -21,6 +21,7 @@ orders-cli = []
 
 [dependencies]
 nordnet-api = { path = "../nordnet-api" }
+nordnet-model = { path = "../nordnet-model" }
 clap = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }

@@ -11,8 +11,8 @@ mod config;
 mod output;
 mod session;
 
-use nordnet_api::auth::Session;
 use nordnet_api::Client;
+use nordnet_model::auth::Session;
 
 #[derive(Debug, Parser)]
 #[command(

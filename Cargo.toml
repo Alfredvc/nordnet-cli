@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/nordnet-api",
     "crates/nordnet-cli",
+    "crates/nordnet-model",
     "xtask",
 ]
 

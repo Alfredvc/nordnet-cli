@@ -60,6 +60,7 @@ const MOD_DIRS: &[(&str, ManagedKind)] = &[
     ("crates/nordnet-api/src/models", ManagedKind::ModelsApi),
     ("crates/nordnet-api/src/resources", ManagedKind::PlainPub),
     ("crates/nordnet-cli/src/cmd", ManagedKind::PlainPub),
+    ("crates/nordnet-model/src/models", ManagedKind::ModelsApi),
 ];
 
 #[derive(Clone, Copy)]

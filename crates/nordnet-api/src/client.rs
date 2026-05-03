@@ -25,8 +25,8 @@ use reqwest::{
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use crate::auth::Session;
 use crate::error::Error;
+use nordnet_model::auth::Session;
 
 /// Typed HTTP client for the Nordnet API. Cheap to clone — wraps a
 /// `reqwest::Client` and a base URL + optional session.

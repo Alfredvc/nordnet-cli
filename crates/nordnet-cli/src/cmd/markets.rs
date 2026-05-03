@@ -1,7 +1,7 @@
 //! `nordnet markets` — market lookups.
 
 use clap::{Args, Subcommand};
-use nordnet_api::ids::MarketId;
+use nordnet_model::ids::MarketId;
 
 /// Subcommands for the `markets` namespace.
 #[derive(Debug, Subcommand)]

@@ -12,11 +12,11 @@
 //! - The full `POST /login/start` -> `POST /login/verify` flow works
 //!   end-to-end against wiremock and produces a usable [`Session`].
 
-use nordnet_api::auth::{
-    sign_challenge, ApiKeyLoginResponse, ApiKeyStartLoginRequest, ApiKeyVerifyLoginRequest,
-    ChallengeResponse, Session,
-};
 use nordnet_api::{Client, Error};
+use nordnet_model::auth::{
+    sign_challenge, ApiKeyStartLoginRequest, ApiKeyVerifyLoginRequest, ChallengeResponse, Session,
+};
+use nordnet_model::models::login::{ApiKeyLoginResponse, Feed};
 use serde::{Deserialize, Serialize};
 use wiremock::matchers::{body_json, body_string, header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -152,7 +152,7 @@ async fn authorization_header_uses_session_key_basic() {
 
 #[tokio::test]
 async fn login_flow_start_sign_verify_against_mock() {
-    use nordnet_api::auth::parse_private_key_openssh;
+    use nordnet_model::auth::parse_private_key_openssh;
     use ssh_key::{private::Ed25519Keypair, LineEnding, PrivateKey};
 
     // Build a deterministic Ed25519 key from a fixed seed and serialize
@@ -193,8 +193,16 @@ async fn login_flow_start_sign_verify_against_mock() {
             ResponseTemplate::new(200).set_body_json(ApiKeyLoginResponse {
                 session_key: "sk-xyz".into(),
                 expires_in: 600,
-                private_feed: None,
-                public_feed: None,
+                private_feed: Feed {
+                    encrypted: true,
+                    hostname: "priv.next.nordnet.se".into(),
+                    port: 443,
+                },
+                public_feed: Feed {
+                    encrypted: true,
+                    hostname: "pub.next.nordnet.se".into(),
+                    port: 443,
+                },
             }),
         )
         .expect(1)

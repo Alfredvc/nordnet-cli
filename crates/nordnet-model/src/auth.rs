@@ -12,7 +12,10 @@
 //!    Ed25519 private key, then base64-encodes the 64-byte signature.
 //! 3. `POST /api/2/login/verify`
 //!    - Body: [`ApiKeyVerifyLoginRequest`] `{ api_key, service, signature }`
-//!    - 200 → [`ApiKeyLoginResponse`] `{ session_key, expires_in, ... }`.
+//!    - 200 → `crate::models::login::ApiKeyLoginResponse`
+//!      `{ session_key, expires_in, ... }`. The canonical typed login
+//!      response lives in [`crate::models::login`] and is not re-exported
+//!      from this module.
 //! 4. Subsequent requests authenticate by setting
 //!    `Authorization: Basic base64(session_key:session_key)`.
 //!
@@ -39,6 +42,8 @@ use ed25519_dalek::{Signer, SigningKey};
 use serde::{Deserialize, Serialize};
 use ssh_key::{private::KeypairData, Algorithm, PrivateKey};
 
+use crate::error::AuthError;
+
 /// Request body for `POST /login/start`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -59,21 +64,6 @@ pub struct ApiKeyVerifyLoginRequest {
     pub api_key: String,
     pub service: String,
     pub signature: String,
-}
-
-/// Response body from `POST /login/verify`.
-///
-/// `private_feed`/`public_feed` are documented as `Feed` objects. They
-/// are accepted but kept opaque here (typed by the `login` group's
-/// follow-up if needed).
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ApiKeyLoginResponse {
-    pub session_key: String,
-    pub expires_in: i64,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub private_feed: Option<serde_json::Value>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub public_feed: Option<serde_json::Value>,
 }
 
 /// An authenticated session — what subsequent client calls need to set
@@ -97,10 +87,11 @@ impl Session {
 /// Pure Ed25519 over the raw UTF-8 bytes of `challenge`. Returns the
 /// base64-encoded 64-byte signature — the format expected by
 /// [`ApiKeyVerifyLoginRequest::signature`].
-pub fn sign_challenge(
-    private_key: &SigningKey,
-    challenge: &str,
-) -> Result<String, crate::error::Error> {
+///
+/// Infallible in practice — Ed25519 signing cannot fail given a valid
+/// [`SigningKey`] — but the return type stays `Result` so callers can
+/// chain it with [`parse_private_key_openssh`] without two error mappings.
+pub fn sign_challenge(private_key: &SigningKey, challenge: &str) -> Result<String, AuthError> {
     let signature = private_key.sign(challenge.as_bytes());
     Ok(B64.encode(signature.to_bytes()))
 }
@@ -109,30 +100,27 @@ pub fn sign_challenge(
 ///
 /// Accepts the on-disk format produced by `ssh-keygen -t ed25519`
 /// (`-----BEGIN OPENSSH PRIVATE KEY-----`). Encrypted keys are
-/// rejected with a descriptive error — decrypt them out-of-band first.
-/// Non-Ed25519 algorithms (RSA, ECDSA, DSA) are also rejected.
-pub fn parse_private_key_openssh(text: &str) -> Result<SigningKey, crate::error::Error> {
+/// rejected with [`AuthError::EncryptedKey`] — decrypt them out-of-band
+/// first. Non-Ed25519 algorithms (RSA, ECDSA, DSA) are rejected with
+/// [`AuthError::WrongAlgorithm`].
+pub fn parse_private_key_openssh(text: &str) -> Result<SigningKey, AuthError> {
     let pk = PrivateKey::from_openssh(text)
-        .map_err(|e| crate::error::Error::Auth(format!("invalid OpenSSH private key: {e}")))?;
+        .map_err(|e| AuthError::InvalidKey(format!("invalid OpenSSH private key: {e}")))?;
 
     if pk.is_encrypted() {
-        return Err(crate::error::Error::Auth(
-            "encrypted SSH keys are not supported; decrypt the key first".to_owned(),
-        ));
+        return Err(AuthError::EncryptedKey);
     }
 
     if pk.algorithm() != Algorithm::Ed25519 {
-        return Err(crate::error::Error::Auth(format!(
-            "expected Ed25519 SSH key, got {}",
-            pk.algorithm().as_str()
-        )));
+        return Err(AuthError::WrongAlgorithm {
+            got: pk.algorithm().as_str().to_owned(),
+            expected: "ed25519",
+        });
     }
 
     match pk.key_data() {
         KeypairData::Ed25519(kp) => Ok(SigningKey::from_bytes(kp.private.as_ref())),
-        _ => Err(crate::error::Error::Auth(
-            "key declared Ed25519 but key_data is not Ed25519".to_owned(),
-        )),
+        _ => Err(AuthError::KeyDataMismatch),
     }
 }
 
@@ -214,7 +202,7 @@ mod tests {
     #[test]
     fn parse_private_key_openssh_rejects_garbage() {
         let r = parse_private_key_openssh("not a key");
-        assert!(matches!(r, Err(crate::error::Error::Auth(_))));
+        assert!(matches!(r, Err(AuthError::InvalidKey(_))));
     }
 
     #[test]
@@ -222,10 +210,10 @@ mod tests {
         // A PKCS#8 RSA PEM is unambiguously not an OpenSSH private
         // key — the BEGIN tag differs. The from_openssh parse fails
         // before our algorithm check runs, but the user-visible error
-        // is still an `Auth(...)` variant — which is what we want.
+        // is still an `InvalidKey(...)` variant — which is what we want.
         let pem = "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----\n";
         let r = parse_private_key_openssh(pem);
-        assert!(matches!(r, Err(crate::error::Error::Auth(_))));
+        assert!(matches!(r, Err(AuthError::InvalidKey(_))));
     }
 
     #[test]
@@ -264,11 +252,16 @@ mod tests {
         assert_eq!(serde_json::to_string(&parsed).unwrap(), raw);
     }
 
+    /// `ApiKeyVerifyLoginRequest` is an auth-level request type that the
+    /// HTTP layer round-trips without modification. Confirms field
+    /// ordering and `deny_unknown_fields` semantics at this layer.
     #[test]
-    fn api_key_login_response_minimal() {
-        let raw = r#"{"session_key":"S","expires_in":300}"#;
-        let parsed: ApiKeyLoginResponse = serde_json::from_str(raw).unwrap();
-        assert_eq!(parsed.session_key, "S");
-        assert_eq!(parsed.expires_in, 300);
+    fn api_key_verify_login_request_round_trip() {
+        let raw = r#"{"api_key":"AK","service":"NEXTAPI","signature":"c2ln"}"#;
+        let parsed: ApiKeyVerifyLoginRequest = serde_json::from_str(raw).unwrap();
+        assert_eq!(parsed.api_key, "AK");
+        assert_eq!(parsed.service, "NEXTAPI");
+        assert_eq!(parsed.signature, "c2ln");
+        assert_eq!(serde_json::to_string(&parsed).unwrap(), raw);
     }
 }

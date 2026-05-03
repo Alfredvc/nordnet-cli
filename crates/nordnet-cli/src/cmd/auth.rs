@@ -24,8 +24,10 @@
 
 use anyhow::Context;
 use clap::Subcommand;
-use nordnet_api::auth::{parse_private_key_openssh, sign_challenge, Session};
-use nordnet_api::models::login::{ApiKeyStartLoginRequest, ApiKeyVerifyLoginRequest};
+use nordnet_model::auth::{
+    parse_private_key_openssh, sign_challenge, ApiKeyStartLoginRequest, ApiKeyVerifyLoginRequest,
+    Session,
+};
 use serde_json::json;
 use time::OffsetDateTime;
 

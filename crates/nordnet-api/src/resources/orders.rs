@@ -33,8 +33,8 @@
 
 use crate::client::Client;
 use crate::error::Error;
-use crate::ids::{AccountId, OrderId};
-use crate::models::orders::{ModifyOrderRequest, Order, OrderReply, PlaceOrderRequest};
+use nordnet_model::ids::{AccountId, OrderId};
+use nordnet_model::models::orders::{ModifyOrderRequest, Order, OrderReply, PlaceOrderRequest};
 
 impl Client {
     /// `GET /accounts/{accid}/orders` — Returns all orders belonging to

@@ -6,8 +6,8 @@
 //! - Wiremock integration: mock `GET /` returns the fixture; `get_system_status`
 //!   deserializes the response and returns the expected [`Status`].
 
-use nordnet_api::models::root::Status;
 use nordnet_api::Client;
+use nordnet_model::models::root::Status;
 use pretty_assertions::assert_eq;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};

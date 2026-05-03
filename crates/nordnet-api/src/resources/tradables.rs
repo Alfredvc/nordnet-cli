@@ -39,7 +39,7 @@
 
 use crate::client::Client;
 use crate::error::Error;
-use crate::models::tradables::{
+use nordnet_model::models::tradables::{
     TradableEligibility, TradableInfo, TradableKey, TradablePublicTrades,
 };
 

@@ -11,7 +11,7 @@
 //! `get` are wired. There is no `list_news_items` on the client.
 
 use clap::{Args, Subcommand};
-use nordnet_api::models::news::NewsId;
+use nordnet_model::models::news::NewsId;
 
 /// Subcommands for the `news` namespace.
 #[derive(Debug, Subcommand)]

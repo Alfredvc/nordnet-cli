@@ -16,13 +16,13 @@
 //!    query string both when populated and when default.
 //!    `get_instrument` covers the 204 No Content -> empty Vec mapping.
 
-use nordnet_api::ids::{InstrumentId, IssuerId, MarketId, TickSizeId, TradableId};
-use nordnet_api::models::instruments::{
+use nordnet_api::resources::instruments::LeveragesQuery;
+use nordnet_api::{Client, Error};
+use nordnet_model::ids::{InstrumentId, IssuerId, MarketId, TickSizeId, TradableId};
+use nordnet_model::models::instruments::{
     Instrument, InstrumentEligibility, InstrumentPublicTrades, InstrumentType,
     KeyInformationDocuments, LeverageFilter, Tradable, UnderlyingInfo,
 };
-use nordnet_api::resources::instruments::LeveragesQuery;
-use nordnet_api::{Client, Error};
 use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
 use time::macros::date;

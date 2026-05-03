@@ -13,11 +13,11 @@
 //! Plus error-mapping tests for the documented status codes (400, 401,
 //! 403).
 
-use nordnet_api::ids::{AccountId, OrderId};
-use nordnet_api::models::orders::{
+use nordnet_api::{Client, Error};
+use nordnet_model::ids::{AccountId, OrderId};
+use nordnet_model::models::orders::{
     ModifyOrderRequest, Order, OrderReply, OrderSide, OrderType, PlaceOrderRequest,
 };
-use nordnet_api::{Client, Error};
 use pretty_assertions::assert_eq;
 use wiremock::matchers::{body_string, header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};

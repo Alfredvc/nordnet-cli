@@ -1,6 +1,6 @@
 //! On-disk session persistence for authenticated `nordnet auth` commands.
 //!
-//! After `nordnet auth login`, the resolved [`nordnet_api::auth::Session`]
+//! After `nordnet auth login`, the resolved [`nordnet_model::auth::Session`]
 //! is serialized to TOML at the [default path](`default_session_path`)
 //! (`<config_dir>/nordnet/session.toml`, e.g. `~/.config/nordnet/session.toml`
 //! on Linux). Subsequent authenticated commands read this file to attach
@@ -30,7 +30,7 @@ use thiserror::Error;
 use time::OffsetDateTime;
 
 /// Persisted session record. Wire form is TOML; fields mirror the
-/// `nordnet_api::auth::Session` plus the local acquisition timestamp,
+/// `nordnet_model::auth::Session` plus the local acquisition timestamp,
 /// which lets `nordnet auth status` compute remaining time without a
 /// network call.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -58,9 +58,10 @@ impl StoredSession {
         self.acquired_at + time::Duration::seconds(self.expires_in)
     }
 
-    /// Convert to the `nordnet_api` session shape the client expects.
-    pub fn to_api_session(&self) -> nordnet_api::auth::Session {
-        nordnet_api::auth::Session {
+    /// Convert to the `nordnet_model` session shape the HTTP client
+    /// expects.
+    pub fn to_api_session(&self) -> nordnet_model::auth::Session {
+        nordnet_model::auth::Session {
             session_key: self.session_key.clone(),
             expires_in: self.expires_in,
         }

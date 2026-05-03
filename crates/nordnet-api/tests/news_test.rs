@@ -7,9 +7,9 @@
 //! mock server using the corresponding fixture as the response body, plus
 //! at least one error-mapping test per CONTRACTS.md.
 
-use nordnet_api::ids::{InstrumentId, MarketId};
-use nordnet_api::models::news::{NewsArticle, NewsId, NewsSource, NewsSourceId};
 use nordnet_api::{Client, Error};
+use nordnet_model::ids::{InstrumentId, MarketId};
+use nordnet_model::models::news::{NewsArticle, NewsId, NewsSource, NewsSourceId};
 use pretty_assertions::assert_eq;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};

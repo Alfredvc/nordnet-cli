@@ -26,7 +26,7 @@
 
 use crate::client::Client;
 use crate::error::Error;
-use crate::models::countries::Country;
+use nordnet_model::models::countries::Country;
 
 impl Client {
     /// Return all countries known to the Nordnet system.

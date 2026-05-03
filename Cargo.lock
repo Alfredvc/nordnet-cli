@@ -1227,7 +1227,7 @@ name = "nordnet-api"
 version = "0.1.0"
 dependencies = [
  "base64",
- "ed25519-dalek",
+ "nordnet-model",
  "pretty_assertions",
  "reqwest",
  "rust_decimal",
@@ -1249,6 +1249,7 @@ dependencies = [
  "clap",
  "dirs",
  "nordnet-api",
+ "nordnet-model",
  "rust_decimal",
  "serde",
  "serde_json",
@@ -1256,6 +1257,21 @@ dependencies = [
  "time",
  "tokio",
  "toml",
+]
+
+[[package]]
+name = "nordnet-model"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "ed25519-dalek",
+ "pretty_assertions",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "ssh-key",
+ "thiserror",
+ "time",
 ]
 
 [[package]]

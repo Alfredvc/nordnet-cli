@@ -12,11 +12,11 @@
 //! 3. Wiremock integration — success (asserting the query string is
 //!    forwarded exactly), 400 → `BadRequest`, 204 → empty `Vec`.
 
-use nordnet_api::ids::{InstrumentId, MarketId, TickSizeId};
-use nordnet_api::models::main_search::{
+use nordnet_api::{Client, Error};
+use nordnet_model::ids::{InstrumentId, MarketId, TickSizeId};
+use nordnet_model::models::main_search::{
     EtpInfo, KoInfo, MainSearchResponse, MarketInfo, PriceKoInfo, PriceWithDecimals, StatusInfo,
 };
-use nordnet_api::{Client, Error};
 use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
 use wiremock::matchers::{method, path, query_param};

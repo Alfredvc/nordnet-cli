@@ -6,8 +6,8 @@
 
 use crate::client::Client;
 use crate::error::Error;
-use crate::ids::TickSizeId;
-use crate::models::tick_sizes::TicksizeTable;
+use nordnet_model::ids::TickSizeId;
+use nordnet_model::models::tick_sizes::TicksizeTable;
 
 impl Client {
     /// `GET /tick_sizes` — Returns a list of all tick size tables.

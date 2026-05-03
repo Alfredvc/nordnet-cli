@@ -1,7 +1,7 @@
 //! `nordnet tick-sizes` — tick-size table lookups.
 
 use clap::{Args, Subcommand};
-use nordnet_api::ids::TickSizeId;
+use nordnet_model::ids::TickSizeId;
 
 /// Subcommands for the `tick-sizes` namespace.
 #[derive(Debug, Subcommand)]

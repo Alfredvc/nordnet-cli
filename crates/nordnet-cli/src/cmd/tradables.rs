@@ -7,8 +7,8 @@
 //! - `suitability` → `client.get_suitability(&key)`
 
 use clap::{Args, Subcommand};
-use nordnet_api::ids::{MarketId, TradableId};
-use nordnet_api::models::tradables::TradableKey;
+use nordnet_model::ids::{MarketId, TradableId};
+use nordnet_model::models::tradables::TradableKey;
 
 /// Subcommands for the `tradables` namespace.
 #[derive(Debug, Subcommand)]

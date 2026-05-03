@@ -61,9 +61,11 @@ pub enum Error {
         body: String,
     },
 
-    /// Failure during the SSH-key login flow (RSA key parsing, signing, ...).
+    /// Failure during the SSH-key login flow (key parsing, algorithm
+    /// mismatch, encrypted-key rejection, …). The wrapped
+    /// [`nordnet_model::AuthError`] carries the specific failure mode.
     #[error("authentication failure: {0}")]
-    Auth(String),
+    Auth(#[from] nordnet_model::AuthError),
 
     /// Header value construction failed (typically because credentials
     /// contain bytes that are not valid for an HTTP header).

@@ -38,8 +38,8 @@
 
 use crate::client::Client;
 use crate::error::Error;
-use crate::ids::{InstrumentId, IssuerId};
-use crate::models::instruments::{
+use nordnet_model::ids::{InstrumentId, IssuerId};
+use nordnet_model::models::instruments::{
     Instrument, InstrumentEligibility, InstrumentPublicTrades, InstrumentType, LeverageFilter,
 };
 

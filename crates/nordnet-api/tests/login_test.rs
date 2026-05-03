@@ -9,17 +9,16 @@
 //! the client emitted the request fixture. Plus one error-mapping test
 //! per operation (where applicable) per CONTRACTS.md.
 //!
-//! Layer 3 — Bridge to [`nordnet_api::auth::Session`]: confirms the
-//! Phase 3 [`ApiKeyLoginResponse`] can be converted into a foundation
+//! Layer 3 — Bridge to [`nordnet_model::auth::Session`]: confirms the
+//! canonical [`ApiKeyLoginResponse`] can be converted into a
 //! [`Session`] whose `basic_auth_header()` matches the expected base64.
 
 use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
-use nordnet_api::auth::Session;
-use nordnet_api::models::login::{
-    ApiKeyLoginResponse, ApiKeyStartLoginRequest, ApiKeyVerifyLoginRequest, ChallengeResponse,
-    Feed, LoggedInStatus,
-};
 use nordnet_api::{Client, Error};
+use nordnet_model::auth::{
+    ApiKeyStartLoginRequest, ApiKeyVerifyLoginRequest, ChallengeResponse, Session,
+};
+use nordnet_model::models::login::{ApiKeyLoginResponse, Feed, LoggedInStatus};
 use pretty_assertions::assert_eq;
 use wiremock::matchers::{body_json, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};

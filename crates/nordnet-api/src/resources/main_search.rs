@@ -31,7 +31,7 @@
 
 use crate::client::Client;
 use crate::error::Error;
-use crate::models::main_search::MainSearchResponse;
+use nordnet_model::models::main_search::MainSearchResponse;
 
 /// Build the encoded query string for [`Client::search`].
 ///

@@ -34,6 +34,7 @@ impl Client {
     ///
     /// Returns [`Error::BadRequest`] (400), [`Error::TooManyRequests`]
     /// (429), or [`Error::ServiceUnavailable`] (503) per the docs.
+    #[doc(alias = "POST /login/start")]
     pub async fn start_login(
         &self,
         request: &ApiKeyStartLoginRequest,
@@ -54,6 +55,7 @@ impl Client {
     /// Returns [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), or [`Error::ServiceUnavailable`]
     /// (503) per the docs.
+    #[doc(alias = "POST /login/verify")]
     pub async fn verify_login(
         &self,
         request: &ApiKeyVerifyLoginRequest,
@@ -72,6 +74,7 @@ impl Client {
     /// Returns [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), or [`Error::ServiceUnavailable`]
     /// (503) per the docs.
+    #[doc(alias = "PUT /login")]
     pub async fn refresh_session(&self) -> Result<LoggedInStatus, Error> {
         self.put_empty("/login").await
     }
@@ -83,6 +86,7 @@ impl Client {
     /// Returns [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), or [`Error::ServiceUnavailable`]
     /// (503) per the docs.
+    #[doc(alias = "DELETE /login")]
     pub async fn logout(&self) -> Result<LoggedInStatus, Error> {
         self.delete("/login").await
     }

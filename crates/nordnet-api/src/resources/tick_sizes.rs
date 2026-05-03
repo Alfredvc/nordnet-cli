@@ -16,6 +16,7 @@ impl Client {
     ///
     /// Returns [`Error::Unauthorized`] (401), [`Error::TooManyRequests`]
     /// (429), or [`Error::ServiceUnavailable`] (503) as documented.
+    #[doc(alias = "GET /tick_sizes")]
     pub async fn list_tick_sizes(&self) -> Result<Vec<TicksizeTable>, Error> {
         self.get("/tick_sizes").await
     }
@@ -32,6 +33,7 @@ impl Client {
     /// Returns [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), or [`Error::ServiceUnavailable`]
     /// (503) as documented.
+    #[doc(alias = "GET /tick_sizes/{tick_size_id}")]
     pub async fn get_tick_size(&self, id: TickSizeId) -> Result<Vec<TicksizeTable>, Error> {
         self.get(&format!("/tick_sizes/{}", id)).await
     }

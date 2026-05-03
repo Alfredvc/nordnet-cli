@@ -36,6 +36,7 @@ impl Client {
     ///
     /// Returns [`Error::Unauthorized`] (401), [`Error::TooManyRequests`]
     /// (429), or [`Error::ServiceUnavailable`] (503) as documented.
+    #[doc(alias = "GET /markets")]
     pub async fn list_markets(&self) -> Result<Vec<Market>, Error> {
         self.get("/markets").await
     }
@@ -51,6 +52,7 @@ impl Client {
     /// Returns [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), or [`Error::ServiceUnavailable`]
     /// (503) as documented.
+    #[doc(alias = "GET /markets/{market_id}")]
     pub async fn get_market(&self, id: MarketId) -> Result<Vec<Market>, Error> {
         let path = format!("/markets/{id}");
         match self.get::<Vec<Market>>(&path).await {

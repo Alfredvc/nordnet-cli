@@ -36,6 +36,7 @@ impl Client {
     /// Not every returned country supports trading.
     ///
     /// Calls `GET /countries`.
+    #[doc(alias = "GET /countries")]
     pub async fn list_countries(&self) -> Result<Vec<Country>, Error> {
         self.get("/countries").await
     }
@@ -47,6 +48,7 @@ impl Client {
     /// the API responds with 204 No Content (no matching countries).
     ///
     /// Calls `GET /countries/{country}`.
+    #[doc(alias = "GET /countries/{country}")]
     pub async fn get_country(&self, code: &str) -> Result<Vec<Country>, Error> {
         let path = format!("/countries/{code}");
         match self.get::<Vec<Country>>(&path).await {

@@ -12,6 +12,7 @@ impl Client {
     /// The path is the API root itself (relative to the configured base URL).
     /// In production the base URL is `https://public.nordnet.se/api/2`, so
     /// this method issues `GET https://public.nordnet.se/api/2/`.
+    #[doc(alias = "GET /api/2")]
     pub async fn get_system_status(&self) -> Result<Status, Error> {
         self.get("").await
     }

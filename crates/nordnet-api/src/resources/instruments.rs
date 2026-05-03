@@ -123,6 +123,7 @@ impl Client {
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), [`Error::ServiceUnavailable`]
     /// (503).
+    #[doc(alias = "GET /instruments/lookup/{lookup_type}/{lookup}")]
     pub async fn lookup(&self, lookup_type: &str, lookup: &str) -> Result<Vec<Instrument>, Error> {
         let path = format!("/instruments/lookup/{lookup_type}/{lookup}");
         match self.get::<Vec<Instrument>>(&path).await {
@@ -138,6 +139,7 @@ impl Client {
     ///
     /// [`Error::Unauthorized`] (401), [`Error::TooManyRequests`] (429),
     /// [`Error::ServiceUnavailable`] (503).
+    #[doc(alias = "GET /instruments/types")]
     pub async fn list_types(&self) -> Result<Vec<InstrumentType>, Error> {
         self.get::<Vec<InstrumentType>>("/instruments/types").await
     }
@@ -154,6 +156,7 @@ impl Client {
     ///
     /// [`Error::Unauthorized`] (401), [`Error::TooManyRequests`] (429),
     /// [`Error::ServiceUnavailable`] (503).
+    #[doc(alias = "GET /instruments/types/{instrument_type}")]
     pub async fn get_type(&self, instrument_type: &str) -> Result<Vec<InstrumentType>, Error> {
         let path = format!("/instruments/types/{instrument_type}");
         match self.get::<Vec<InstrumentType>>(&path).await {
@@ -178,6 +181,7 @@ impl Client {
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), [`Error::ServiceUnavailable`]
     /// (503).
+    #[doc(alias = "GET /instruments/underlyings/{derivative_type}/{currency}")]
     pub async fn list_underlyings(
         &self,
         derivative_type: &str,
@@ -207,6 +211,7 @@ impl Client {
     /// [`Error::Forbidden`] (403; documented for anonymous sessions and
     /// returned with an empty body), [`Error::TooManyRequests`] (429),
     /// [`Error::ServiceUnavailable`] (503).
+    #[doc(alias = "GET /instruments/validation/suitability/{instrument_id}")]
     pub async fn get_instrument_suitability(
         &self,
         instrument_id: InstrumentId,
@@ -229,6 +234,7 @@ impl Client {
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), [`Error::ServiceUnavailable`]
     /// (503).
+    #[doc(alias = "GET /instruments/{instrument_id}")]
     pub async fn get_instrument(
         &self,
         instrument_id: InstrumentId,
@@ -255,6 +261,7 @@ impl Client {
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), [`Error::ServiceUnavailable`]
     /// (503).
+    #[doc(alias = "GET /instruments/{instrument_id}/leverages")]
     pub async fn list_leverages(
         &self,
         instrument_id: InstrumentId,
@@ -281,6 +288,7 @@ impl Client {
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), [`Error::ServiceUnavailable`]
     /// (503).
+    #[doc(alias = "GET /instruments/{instrument_id}/leverages/filters")]
     pub async fn get_leverage_filters(
         &self,
         instrument_id: InstrumentId,
@@ -303,6 +311,7 @@ impl Client {
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), [`Error::ServiceUnavailable`]
     /// (503).
+    #[doc(alias = "GET /instruments/{instrument_id}/trades")]
     pub async fn list_instrument_trades(
         &self,
         instrument_id: InstrumentId,

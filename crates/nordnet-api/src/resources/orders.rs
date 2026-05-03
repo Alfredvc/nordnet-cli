@@ -49,6 +49,7 @@ impl Client {
     /// [`Error::Forbidden`] (403; documented with empty body),
     /// [`Error::TooManyRequests`] (429), or
     /// [`Error::ServiceUnavailable`] (503) per the docs.
+    #[doc(alias = "GET /accounts/{accid}/orders")]
     pub async fn list_orders(
         &self,
         accid: AccountId,
@@ -81,6 +82,7 @@ impl Client {
     /// Returns [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::Forbidden`] (403), [`Error::TooManyRequests`] (429), or
     /// [`Error::ServiceUnavailable`] (503) per the docs.
+    #[doc(alias = "POST /accounts/{accid}/orders")]
     pub async fn place_order(
         &self,
         accid: AccountId,
@@ -105,6 +107,7 @@ impl Client {
     /// [`Error::UnexpectedStatus`] (404; documented "Order not found"),
     /// [`Error::TooManyRequests`] (429), or
     /// [`Error::ServiceUnavailable`] (503) per the docs.
+    #[doc(alias = "PUT /accounts/{accid}/orders/{order_id}")]
     pub async fn modify_order(
         &self,
         accid: AccountId,
@@ -128,6 +131,7 @@ impl Client {
     /// Returns [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::Forbidden`] (403), [`Error::TooManyRequests`] (429), or
     /// [`Error::ServiceUnavailable`] (503) per the docs.
+    #[doc(alias = "PUT /accounts/{accid}/orders/{order_id}/activate")]
     pub async fn activate_order(
         &self,
         accid: AccountId,
@@ -144,6 +148,7 @@ impl Client {
     /// Returns [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::Forbidden`] (403), [`Error::TooManyRequests`] (429), or
     /// [`Error::ServiceUnavailable`] (503) per the docs.
+    #[doc(alias = "DELETE /accounts/{accid}/orders/{order_id}")]
     pub async fn cancel_order(
         &self,
         accid: AccountId,

@@ -256,6 +256,7 @@ impl Client {
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), [`Error::ServiceUnavailable`]
     /// (503).
+    #[doc(alias = "GET /instrument_search/attributes")]
     pub async fn get_attributes(
         &self,
         filters: AttributesQuery<'_>,
@@ -272,6 +273,7 @@ impl Client {
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), [`Error::ServiceUnavailable`]
     /// (503).
+    #[doc(alias = "GET /instrument_search/query/stocklist")]
     pub async fn search_stocklist(
         &self,
         filters: StocklistQuery<'_>,
@@ -292,6 +294,7 @@ impl Client {
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), [`Error::ServiceUnavailable`]
     /// (503).
+    #[doc(alias = "GET /instrument_search/query/bullbearlist")]
     pub async fn search_bullbearlist(
         &self,
         filters: ListSearchQuery<'_>,
@@ -320,6 +323,7 @@ impl Client {
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), [`Error::ServiceUnavailable`]
     /// (503).
+    #[doc(alias = "GET /instrument_search/query/minifuturelist")]
     pub async fn search_minifuturelist(
         &self,
         filters: ListSearchQuery<'_>,
@@ -337,6 +341,7 @@ impl Client {
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), [`Error::ServiceUnavailable`]
     /// (503).
+    #[doc(alias = "GET /instrument_search/query/unlimitedturbolist")]
     pub async fn search_unlimitedturbolist(
         &self,
         filters: ListSearchQuery<'_>,
@@ -361,6 +366,7 @@ impl Client {
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), [`Error::ServiceUnavailable`]
     /// (503).
+    #[doc(alias = "GET /instrument_search/query/optionlist/pairs")]
     pub async fn search_optionlist_pairs(
         &self,
         currency: &str,

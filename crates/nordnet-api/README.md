@@ -47,6 +47,27 @@ challenge, the caller signs the raw UTF-8 bytes with an Ed25519 key, and
 `POST /login/verify` returns a `session_key`. The login primitives live in
 [`nordnet-model::auth`](https://docs.rs/nordnet-model).
 
+## Resource groups
+
+Each group is a module under [`resources`](https://docs.rs/nordnet-api/latest/nordnet_api/resources/);
+every operation hangs off `Client` and carries a `#[doc(alias = "METHOD /path")]`
+so rustdoc search resolves raw HTTP paths.
+
+| Group | Ops | Coverage |
+|-------|-----|----------|
+| [`accounts`](https://docs.rs/nordnet-api/latest/nordnet_api/resources/accounts/) | 6 | accounts, info, ledgers, positions, returns, trades |
+| [`countries`](https://docs.rs/nordnet-api/latest/nordnet_api/resources/countries/) | 2 | list + lookup by ISO code |
+| [`instrument_search`](https://docs.rs/nordnet-api/latest/nordnet_api/resources/instrument_search/) | 6 | attributes + stock/bullbear/minifuture/turbo/option searches |
+| [`instruments`](https://docs.rs/nordnet-api/latest/nordnet_api/resources/instruments/) | 9 | lookup, types, underlyings, leverages, suitability, trades |
+| [`login`](https://docs.rs/nordnet-api/latest/nordnet_api/resources/login/) | 4 | start, verify, refresh, logout |
+| [`main_search`](https://docs.rs/nordnet-api/latest/nordnet_api/resources/main_search/) | 1 | unified instruments/news/CMS search |
+| [`markets`](https://docs.rs/nordnet-api/latest/nordnet_api/resources/markets/) | 2 | list + lookup by ID |
+| [`news`](https://docs.rs/nordnet-api/latest/nordnet_api/resources/news/) | 2 | article fetch + sources |
+| [`orders`](https://docs.rs/nordnet-api/latest/nordnet_api/resources/orders/) | 5 | list, place, modify, activate, cancel |
+| [`root`](https://docs.rs/nordnet-api/latest/nordnet_api/resources/root/) | 1 | system status |
+| [`tick_sizes`](https://docs.rs/nordnet-api/latest/nordnet_api/resources/tick_sizes/) | 2 | list + lookup by ID |
+| [`tradables`](https://docs.rs/nordnet-api/latest/nordnet_api/resources/tradables/) | 3 | info, trades, suitability |
+
 ## Companion crates
 
 - [`nordnet-model`](https://crates.io/crates/nordnet-model) — wire-typed inputs/outputs (no I/O).

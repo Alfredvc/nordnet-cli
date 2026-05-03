@@ -120,6 +120,7 @@ impl Client {
     /// HTTP 204 (No Content) and 404 (No Content) responses are mapped
     /// to an empty `Vec<MainSearchResponse>` (per the `get_country`
     /// precedent).
+    #[doc(alias = "GET /main_search")]
     pub async fn search(
         &self,
         query: &str,

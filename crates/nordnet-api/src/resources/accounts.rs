@@ -128,6 +128,7 @@ impl Client {
     /// [`Error::Unauthorized`] (401), [`Error::Forbidden`] (403),
     /// [`Error::TooManyRequests`] (429), [`Error::ServiceUnavailable`]
     /// (503).
+    #[doc(alias = "GET /accounts")]
     pub async fn list_accounts(&self, query: ListAccountsQuery) -> Result<Vec<Account>, Error> {
         let mut pairs = Vec::new();
         append_bool(
@@ -161,6 +162,7 @@ impl Client {
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::Forbidden`] (403), [`Error::TooManyRequests`] (429),
     /// [`Error::ServiceUnavailable`] (503).
+    #[doc(alias = "GET /accounts/{accid}/info")]
     pub async fn get_account_info(
         &self,
         accid: AccountId,
@@ -198,6 +200,7 @@ impl Client {
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::Forbidden`] (403), [`Error::TooManyRequests`] (429),
     /// [`Error::ServiceUnavailable`] (503).
+    #[doc(alias = "GET /accounts/{accid}/ledgers")]
     pub async fn list_ledgers(&self, accid: AccountId) -> Result<LedgerInformation, Error> {
         let path = format!("/accounts/{accid}/ledgers");
         self.get::<LedgerInformation>(&path).await
@@ -213,6 +216,7 @@ impl Client {
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::Forbidden`] (403), [`Error::TooManyRequests`] (429),
     /// [`Error::ServiceUnavailable`] (503).
+    #[doc(alias = "GET /accounts/{accid}/positions")]
     pub async fn list_positions(
         &self,
         accid: AccountId,
@@ -253,6 +257,7 @@ impl Client {
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::Forbidden`] (403), [`Error::TooManyRequests`] (429),
     /// [`Error::ServiceUnavailable`] (503).
+    #[doc(alias = "GET /accounts/{accid}/returns/transactions/today")]
     pub async fn get_returns_today(
         &self,
         accid: AccountId,
@@ -289,11 +294,12 @@ impl Client {
     /// # Errors
     ///
     /// [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
-    /// [`Error::Forbidden`] (403), [`Error::NotFound`] (404; documented
-    /// as "Account not found"; surfaced via [`Error::UnexpectedStatus`]
-    /// because the foundation `Error` enum does not model 404 as a
-    /// dedicated variant), [`Error::TooManyRequests`] (429),
+    /// [`Error::Forbidden`] (403), 404 (documented as "Account not found";
+    /// surfaced via [`Error::UnexpectedStatus`] because the foundation
+    /// `Error` enum does not model 404 as a dedicated variant),
+    /// [`Error::TooManyRequests`] (429),
     /// [`Error::ServiceUnavailable`] (503).
+    #[doc(alias = "GET /accounts/{accid}/trades")]
     pub async fn list_account_trades(
         &self,
         accid: AccountId,

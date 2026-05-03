@@ -46,6 +46,7 @@ impl Client {
     /// Returns [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), or [`Error::ServiceUnavailable`]
     /// (503) as documented.
+    #[doc(alias = "GET /news/{item_id}")]
     pub async fn get_news_item(&self, id: NewsId) -> Result<Vec<NewsArticle>, Error> {
         let path = format!("/news/{}", id.0);
         match self.get::<Vec<NewsArticle>>(&path).await {
@@ -63,6 +64,7 @@ impl Client {
     ///
     /// Returns [`Error::Unauthorized`] (401), [`Error::TooManyRequests`]
     /// (429), or [`Error::ServiceUnavailable`] (503) as documented.
+    #[doc(alias = "GET /news_sources")]
     pub async fn list_news_sources(&self) -> Result<Vec<NewsSource>, Error> {
         self.get("/news_sources").await
     }

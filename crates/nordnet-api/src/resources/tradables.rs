@@ -59,6 +59,7 @@ impl Client {
     /// Returns [`Error::BadRequest`] (400), [`Error::Unauthorized`] (401),
     /// [`Error::TooManyRequests`] (429), or [`Error::ServiceUnavailable`]
     /// (503) as documented.
+    #[doc(alias = "GET /tradables/info/{tradables}")]
     pub async fn get_tradable_info(&self, key: &TradableKey) -> Result<Vec<TradableInfo>, Error> {
         let path = format!("/tradables/info/{key}");
         match self.get::<Vec<TradableInfo>>(&path).await {
@@ -94,6 +95,7 @@ impl Client {
     /// `list_tradable_trades` so it can co-exist with the same-named ops
     /// planned for the `accounts` and `instruments` groups (see module
     /// doc).
+    #[doc(alias = "GET /tradables/trades/{tradables}")]
     pub async fn list_tradable_trades(
         &self,
         key: &TradableKey,
@@ -121,6 +123,7 @@ impl Client {
     /// [`Error::Forbidden`] (403; documented for anonymous sessions and
     /// returned with an empty body), [`Error::TooManyRequests`] (429), or
     /// [`Error::ServiceUnavailable`] (503) as documented.
+    #[doc(alias = "GET /tradables/validation/suitability/{tradables}")]
     pub async fn get_suitability(
         &self,
         key: &TradableKey,

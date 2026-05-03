@@ -1,7 +1,5 @@
 //! Tests for the `tradables` resource group.
-//!
-//! Three test layers per CONTRACTS.md:
-//!
+//! Three test layers:
 //! 1. Fixture roundtrip — every fixture parses under `deny_unknown_fields`
 //!    and re-serializes to the same canonical JSON `Value`. A separate
 //!    Decimal-precision roundtrip covers the `price` field.
@@ -167,13 +165,13 @@ fn public_trade_decimal_precision_survives_roundtrip() {
     // Verifies the `arbitrary_precision` adapter on `PublicTrade::price`
     // preserves multi-significant-digit precision through serde.
     let raw = r#"{
-        "market_id": 11,
-        "price": 12345.67891234,
-        "tick_timestamp": 0,
-        "trade_id": "X",
-        "trade_timestamp": 0,
-        "volume": 1
-    }"#;
+ "market_id": 11,
+ "price": 12345.67891234,
+ "tick_timestamp": 0,
+ "trade_id": "X",
+ "trade_timestamp": 0,
+ "volume": 1
+ }"#;
     let parsed: PublicTrade = serde_json::from_str(raw).unwrap();
     assert_eq!(parsed.price, "12345.67891234".parse::<Decimal>().unwrap());
 

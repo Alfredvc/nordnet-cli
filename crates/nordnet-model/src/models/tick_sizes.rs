@@ -1,12 +1,11 @@
 //! Types for the `tick_sizes` resource group.
 //!
-//! Derived strictly from `docs-extract/_definitions/TicksizeTable.md` and
-//! `docs-extract/_definitions/TicksizeInterval.md`.
+//! Derived from the Nordnet `TicksizeTable` and `TicksizeInterval` schemas.
 //!
 //! Doc note: `TicksizeInterval` documents `from_price`, `tick`, and
-//! `to_price` as `number(double)`. Per CONTRACTS.md, `f64` is forbidden for
-//! numeric price/tick fields; `rust_decimal::Decimal` is used instead,
-//! which round-trips losslessly through JSON as a decimal number literal.
+//! `to_price` as `number(double)`. `f64` is forbidden for numeric
+//! price/tick fields; `rust_decimal::Decimal` is used instead, which
+//! round-trips losslessly through JSON as a decimal number literal.
 
 use crate::ids::TickSizeId;
 use rust_decimal::Decimal;
@@ -15,8 +14,7 @@ use serde::{Deserialize, Serialize};
 /// A single tick size interval entry.
 ///
 /// Corresponds to the `TicksizeInterval` definition in the Nordnet API docs.
-/// All price and tick fields use [`Decimal`] instead of `f64` per
-/// CONTRACTS.md ("Never `f64`").
+/// All price and tick fields use [`Decimal`] instead of `f64`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct TicksizeInterval {
     /// Number of decimals used in this interval.

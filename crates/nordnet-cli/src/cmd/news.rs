@@ -7,8 +7,9 @@
 //!
 //! # Missing op
 //!
-//! The `list` op from PROCESS.md §388 has no resource fn; only `sources` and
-//! `get` are wired. There is no `list_news_items` on the client.
+//! The deprecated `GET /news` list op is intentionally not surfaced; only
+//! `sources` and `get` are wired. There is no `list_news_items` on the
+//! client.
 
 use clap::{Args, Subcommand};
 use nordnet_model::models::news::NewsId;

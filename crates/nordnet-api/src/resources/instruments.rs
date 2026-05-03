@@ -14,6 +14,7 @@
 //! | GET | `get_leverage_filters` | `/instruments/{instrument_id}/leverages/filters` |
 //! | GET | `list_instrument_trades` | `/instruments/{instrument_id}/trades` |
 //!
+//!
 //! ## Naming
 //!
 //! Two ops are renamed from their docs name so they can co-exist on
@@ -27,6 +28,7 @@
 //!   `tradables::get_suitability`.
 //!
 //! Phase 3X may pick a uniform naming scheme.
+//!
 //!
 //! ## 204 No Content
 //!

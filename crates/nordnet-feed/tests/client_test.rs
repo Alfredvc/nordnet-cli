@@ -358,7 +358,9 @@ async fn heartbeat_watchdog_fires_when_server_silent() {
         connect_timeout: Duration::from_secs(2),
         heartbeat_timeout: Some(Duration::from_millis(150)),
     };
-    let mut client = PublicFeedClient::connect_with(&feed, &config).await.unwrap();
+    let mut client = PublicFeedClient::connect_with(&feed, &config)
+        .await
+        .unwrap();
     let result = tokio::time::timeout(Duration::from_secs(1), client.recv())
         .await
         .expect("watchdog should fire before outer timeout");
@@ -391,7 +393,9 @@ async fn heartbeat_watchdog_does_not_fire_while_frames_arrive() {
         connect_timeout: Duration::from_secs(2),
         heartbeat_timeout: Some(Duration::from_millis(500)),
     };
-    let mut client = PublicFeedClient::connect_with(&feed, &config).await.unwrap();
+    let mut client = PublicFeedClient::connect_with(&feed, &config)
+        .await
+        .unwrap();
     for _ in 0..3 {
         let event = tokio::time::timeout(Duration::from_secs(2), client.recv())
             .await

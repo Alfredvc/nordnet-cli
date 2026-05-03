@@ -1,5 +1,0 @@
-ops = ["get_type"]
-request_fixture = false
-response_fixture = true
-fixture_provenance = "synthesized_from_schema"
-schema_source = "docs-extract/_definitions/InstrumentType.md"

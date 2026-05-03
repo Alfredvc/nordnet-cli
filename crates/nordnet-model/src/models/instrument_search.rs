@@ -1,52 +1,39 @@
 //! Models for the `instrument_search` resource group.
 //!
-//! Derived strictly from these schema files in `docs-extract/_definitions/`:
+//! Derived from the Nordnet attribute / list / pair / entity / info
+//! schemas covering `AttributeResults`, `Stocklist`, `BullBearList`,
+//! `MinifutureList`, `UnlimitedTurboList`, `OptionList`, plus the
+//! `CertificateInfo`, `EtpInfo`, `ExchangeInfo`, `InstrumentInfo`,
+//! `MarketInfo`, `PriceInfo`, `PriceWithDecimals`, `DiffWithDecimals`,
+//! `CompanyInfo`, `HistoricalReturnsInfo`, `KeyRatiosInfo`,
+//! `StatisticalInfo`, `KoCalcInfo`, `KoInfo`, `PriceKoInfo`,
+//! `DerivativeInfo`, and `OptionInfo` definitions.
 //!
-//! - `AttributeResults.md`, `AttributeResult.md`, `FilterDetails.md`, `FilterVal.md`
-//! - `StocklistResults.md`, `Stocklist.md`
-//! - `BullBearListResults.md`, `BullBearEntity.md`
-//! - `MinifutureListResults.md`, `MinifutureEntity.md`
-//! - `UnlimitedTurboListResults.md`, `UnlimitedTurboEntity.md`
-//! - `OptionListResults.md`, `OptionlistPair.md`, `OptionlistEntity.md`
-//! - `CertificateInfo.md`, `EtpInfo.md`, `ExchangeInfo.md`, `InstrumentInfo.md`
-//! - `MarketInfo.md`, `PriceInfo.md`, `PriceWithDecimals.md`, `DiffWithDecimals.md`
-//! - `CompanyInfo.md`, `HistoricalReturnsInfo.md`, `KeyRatiosInfo.md`
-//! - `StatisticalInfo.md`, `KoCalcInfo.md`, `KoInfo.md`, `PriceKoInfo.md`
-//! - `DerivativeInfo.md`, `OptionInfo.md`
+//! Every referenced type is defined locally here. Some shapes (`EtpInfo`,
+//! `KoInfo`, `MarketInfo`, `PriceKoInfo`, `PriceWithDecimals`) are
+//! byte-equivalent to their counterparts in `models::main_search` and are
+//! intentionally duplicated.
 //!
-//! Per CONTRACTS.md ("No subagent edits files outside its own group") every
-//! referenced type is defined locally here. Cross-group reconciliation
-//! (e.g. `EtpInfo`, `KoInfo`, `MarketInfo`, `PriceKoInfo`,
-//! `PriceWithDecimals`, `MarketInfo` also appear in `models::main_search`;
-//! `IssuerId` precedent in `models::instruments`) is deferred to Phase 3X.
 //!
 //! ## Doc notes
 //!
 //! - `number(double)` and bare `number` fields are typed as
-//!   [`rust_decimal::Decimal`] (with the `arbitrary_precision` adapter)
-//!   per CONTRACTS.md — never `f64`. As a result these types cannot derive
-//!   [`Eq`]. The `Option<Decimal>` adapter was promoted to
-//!   [`crate::models::shared::opt_arb_prec`] in Phase 3X (it had been
-//!   duplicated in 4 group files).
+//!   [`rust_decimal::Decimal`] (with the `arbitrary_precision` adapter) —
+//!   never `f64`. As a result these types cannot derive [`Eq`].
+//!   `Option<Decimal>` fields use
+//!   [`crate::models::shared::opt_arb_prec`].
 //! - Several timestamp-shaped `integer(int64)` fields
 //!   (`first_trading_date`, `dividend_date`, `excluding_date`,
 //!   `general_meeting_date`, `report_date`, `statistics_timestamp`,
 //!   `tick_timestamp`, `expire_date`, `start_date`) follow Nordnet's
-//!   UNIX-epoch-millis convention per the docs but are kept as plain `i64`
-//!   (no `Timestamp` newtype exists for epoch-millis under
-//!   `crate::models::shared`).
-//! - `InstrumentInfo.issuer_id` is `integer(int64)`. Phase 3X promoted
-//!   the `IssuerId` newtype to [`crate::ids::IssuerId`]; this field now
-//!   uses it.
+//!   UNIX-epoch-millis convention per the docs but are kept as plain
+//!   `i64`.
+//! - `InstrumentInfo.issuer_id` uses [`crate::ids::IssuerId`].
 //! - `MarketInfo.market_sub_id` is `integer(int64)` with no dedicated
-//!   newtype, so plain `i64` is used. The `EtpInfo`, `KoInfo`, `MarketInfo`,
-//!   `PriceKoInfo`, `PriceWithDecimals` types here are byte-equivalent to
-//!   their counterparts in `models::main_search`; per the Phase 3X rule
-//!   ("two-group dup stays duplicated unless field-shape divergence") the
-//!   duplication is intentional and documented.
+//!   newtype, so plain `i64` is used.
 //! - `OptionInfo.risk_free_interest` and `OptionInfo.strike_price` are
 //!   bare `number` (not `number(double)`) in the schema; we still use
-//!   [`Decimal`] per the "never `f64`" rule.
+//!   [`Decimal`].
 //! - `OptionlistPair.strike_price` is bare `number` (required); typed as
 //!   [`Decimal`].
 //! - `attributes_count` (in `AttributeResults`) is the only required field
@@ -102,11 +89,10 @@ pub struct FilterDetails {
 
 /// One attribute search result.
 ///
-/// Schema: `_definitions/AttributeResult.md`. All fields are optional per
-/// the doc.
+/// All fields are optional per the doc.
 ///
-/// `min` and `max` are `number(double)` and typed as [`Decimal`] per
-/// CONTRACTS.md; this prevents deriving [`Eq`].
+/// `min` and `max` are `number(double)` and typed as [`Decimal`]; this
+/// prevents deriving [`Eq`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct AttributeResult {
     /// Additional details for attributes having `filterable=true`.
@@ -118,14 +104,14 @@ pub struct AttributeResult {
     /// Attribute ID.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
-    /// Maximum value. `Decimal` per CONTRACTS.md.
+    /// Maximum value. `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "opt_arb_prec"
     )]
     pub max: Option<Decimal>,
-    /// Minimum value. `Decimal` per CONTRACTS.md.
+    /// Minimum value. `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -172,9 +158,8 @@ pub struct ExchangeInfo {
 
 /// Market info reported on an instrument-search result.
 ///
-/// Schema: `_definitions/MarketInfo.md`. All fields optional per doc.
-/// Structurally distinct from `crate::models::markets::Market` (Phase 3X
-/// reconciliation pending).
+/// All fields optional per doc. Structurally distinct from
+/// `crate::models::markets::Market`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct MarketInfo {
     /// Market identifier (string form, e.g. `"XSTO"`).
@@ -193,8 +178,7 @@ pub struct MarketInfo {
 
 /// Instrument information block reported in an instrument-search row.
 ///
-/// Schema: `_definitions/InstrumentInfo.md`. All fields optional per doc.
-/// `issuer_id` uses [`crate::ids::IssuerId`] (Phase 3X promotion).
+/// All fields optional per doc. `issuer_id` uses [`crate::ids::IssuerId`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct InstrumentInfo {
     /// Clearing place.
@@ -233,7 +217,7 @@ pub struct InstrumentInfo {
     /// International securities identification number (ISIN).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub isin: Option<String>,
-    /// Issuer ID. Phase 3X promoted to [`crate::ids::IssuerId`].
+    /// Issuer ID — see [`crate::ids::IssuerId`].
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub issuer_id: Option<IssuerId>,
     /// Issuer name.
@@ -261,7 +245,7 @@ pub struct PriceWithDecimals {
     /// Number of decimals.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub decimals: Option<i32>,
-    /// Price amount. `Decimal` per CONTRACTS.md.
+    /// Price amount. `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -278,7 +262,7 @@ pub struct DiffWithDecimals {
     /// Number of decimals.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub decimals: Option<i32>,
-    /// Difference amount. `Decimal` per CONTRACTS.md.
+    /// Difference amount. `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -346,7 +330,7 @@ pub struct PriceInfo {
     /// Last tick time stamp (UNIX millis per Nordnet convention).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tick_timestamp: Option<i64>,
-    /// Daily turnover. `Decimal` per CONTRACTS.md.
+    /// Daily turnover. `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -367,7 +351,7 @@ pub struct PriceInfo {
 /// Schema: `_definitions/CompanyInfo.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct CompanyInfo {
-    /// Upcoming dividend amount. `Decimal` per CONTRACTS.md.
+    /// Upcoming dividend amount. `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -593,7 +577,7 @@ pub struct CertificateInfo {
     /// High-risk (static).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub static_high_risk: Option<bool>,
-    /// Static leverage. `Decimal` per CONTRACTS.md.
+    /// Static leverage. `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -633,7 +617,7 @@ pub struct EtpInfo {
 /// `ko_calc_conversion_ratio` is `number(double)` -> [`Decimal`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct KoCalcInfo {
-    /// The conversion ratio. `Decimal` per CONTRACTS.md.
+    /// The conversion ratio. `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -656,14 +640,14 @@ pub struct KoCalcInfo {
 /// Schema: `_definitions/KoInfo.md`. All fields optional per doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct KoInfo {
-    /// Financial level (strike price). `Decimal` per CONTRACTS.md.
+    /// Financial level (strike price). `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "opt_arb_prec"
     )]
     pub financial_level: Option<Decimal>,
-    /// Stop-loss (barrier price). `Decimal` per CONTRACTS.md.
+    /// Stop-loss (barrier price). `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -680,14 +664,14 @@ pub struct PriceKoInfo {
     /// High-risk (indicative).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub indicative_high_risk: Option<bool>,
-    /// Indicative leverage. `Decimal` per CONTRACTS.md.
+    /// Indicative leverage. `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "opt_arb_prec"
     )]
     pub indicative_leverage: Option<Decimal>,
-    /// Risk buffer. `Decimal` per CONTRACTS.md.
+    /// Risk buffer. `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -872,14 +856,14 @@ pub struct OptionInfo {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exercise_type: Option<String>,
     /// Risk-free interest based on the option expiration date. `Decimal`
-    /// per CONTRACTS.md.
+    /// (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "opt_arb_prec"
     )]
     pub risk_free_interest: Option<Decimal>,
-    /// Option strike price. `Decimal` per CONTRACTS.md.
+    /// Option strike price. `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -929,8 +913,8 @@ pub struct OptionlistPair {
     pub call_option: OptionlistEntity,
     /// Put option leg.
     pub put_option: OptionlistEntity,
-    /// Common strike price for the Put and Call options. `Decimal` per
-    /// CONTRACTS.md.
+    /// Common strike price for the Put and Call options. `Decimal` (never
+    /// `f64`).
     #[serde(with = "rust_decimal::serde::arbitrary_precision")]
     pub strike_price: Decimal,
 }

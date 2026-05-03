@@ -9,6 +9,7 @@
 //! | PUT    | `refresh_session`| `/login`           |
 //! | DELETE | `logout`         | `/login`           |
 //!
+//!
 //! ## Body-less PUT
 //!
 //! `refresh_session` is documented with no request body. We use the

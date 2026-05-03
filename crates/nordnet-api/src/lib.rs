@@ -5,7 +5,7 @@
 //! the sibling [`nordnet_model`] crate; this crate composes them with
 //! `reqwest`-backed HTTP plumbing.
 //!
-//! See `CONTRACTS.md` at the workspace root for the full contract.
+//! See `CONTRIBUTING.md` at the workspace root for type and module conventions.
 
 pub mod client;
 pub mod error;

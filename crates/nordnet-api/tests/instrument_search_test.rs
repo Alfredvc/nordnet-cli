@@ -1,7 +1,5 @@
 //! Tests for the `instrument_search` resource group.
-//!
-//! Three test layers per CONTRACTS.md:
-//!
+//! Three test layers:
 //! 1. Fixture roundtrip — every fixture parses under `deny_unknown_fields`
 //!    and re-serializes to the same canonical JSON `Value`.
 //! 2. `deny_unknown_fields` rejection — sanity touch on a representative

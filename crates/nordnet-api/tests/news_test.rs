@@ -1,11 +1,9 @@
 //! Tests for the `news` resource group.
-//!
 //! Layer 1 — Fixture roundtrip: every fixture parses under
 //! `deny_unknown_fields` and re-serializes to canonical JSON.
-//!
 //! Layer 2 — Wiremock integration: every operation is exercised against a
 //! mock server using the corresponding fixture as the response body, plus
-//! at least one error-mapping test per CONTRACTS.md.
+//! at least one error-mapping test.
 
 use nordnet_api::{Client, Error};
 use nordnet_model::ids::{InstrumentId, MarketId};
@@ -79,7 +77,7 @@ fn get_news_item_fixture_roundtrip() {
     assert_eq!(parsed[1].isin_codes, None);
     assert_eq!(parsed[1].sectors, None);
 
-    // Canonical roundtrip per CONTRACTS.md test rule 1.
+    // Canonical roundtrip test rule 1.
     let canonical: serde_json::Value =
         serde_json::from_str(raw).expect("fixture must parse as Value");
     let re = serde_json::to_string(&parsed).expect("must re-serialize");
@@ -107,7 +105,7 @@ fn list_news_sources_fixture_roundtrip() {
     assert_eq!(parsed[1].level, "DELAYED");
     assert_eq!(parsed[1].countries, None);
 
-    // Canonical roundtrip per CONTRACTS.md test rule 1.
+    // Canonical roundtrip test rule 1.
     let canonical: serde_json::Value =
         serde_json::from_str(raw).expect("fixture must parse as Value");
     let re = serde_json::to_string(&parsed).expect("must re-serialize");

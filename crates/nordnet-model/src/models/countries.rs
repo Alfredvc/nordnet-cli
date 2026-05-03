@@ -1,16 +1,14 @@
 //! Models for the `countries` resource group.
 //!
-//! Derived from `docs-extract/_definitions/Country.md`.
-//! The `Country` definition has two required string fields: `country` (ISO
-//! country code) and `name` (translated country name). Neither is marked
-//! optional in the schema table, so no `Option<T>` wrappers are used.
+//! The Nordnet `Country` schema has two required string fields: `country`
+//! (ISO country code) and `name` (translated country name). Neither is
+//! marked optional in the schema table, so no `Option<T>` wrappers are
+//! used.
 
 use serde::{Deserialize, Serialize};
 
 /// A country entry as returned by `GET /countries` and
 /// `GET /countries/{country}`.
-///
-/// Schema source: `docs-extract/_definitions/Country.md`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Country {
     /// ISO country code (e.g. `"SE"`, `"NO"`).

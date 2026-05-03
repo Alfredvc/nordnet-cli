@@ -1,8 +1,5 @@
 //! Newtype wrappers for resource identifiers used by the Nordnet API.
 //!
-//! Underlying types are derived from `docs-source/nordnet-api-v2.html`
-//! parameter and schema tables:
-//!
 //! | Newtype          | Underlying    | Example doc field          |
 //! |------------------|---------------|----------------------------|
 //! | [`AccountId`]    | `i64`         | `accid` — `integer(int64)` |
@@ -11,12 +8,12 @@
 //! | [`MarketId`]     | `i64`         | `market_id` — `integer(int64)` |
 //! | [`TickSizeId`]   | `i64`         | `tick_size_id` — `integer(int64)` |
 //! | [`TradableId`]   | `String`      | `identifier` — `string` |
-//! | [`IssuerId`]     | `i64`         | `issuer_id` — `integer(int64)` (added by Phase 3X) |
+//! | [`IssuerId`]     | `i64`         | `issuer_id` — `integer(int64)` |
 //!
 //! All newtypes are `#[serde(transparent)]` so they round-trip identically
 //! to the underlying primitive on the wire — the strong typing exists only
 //! at compile time to prevent passing an `OrderId` where an `AccountId` is
-//! expected (per CONTRACTS.md "Type rules").
+//! expected.
 
 use serde::{Deserialize, Serialize};
 use std::fmt;

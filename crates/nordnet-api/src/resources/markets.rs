@@ -7,12 +7,14 @@
 //! | GET | `list_markets` | `/markets` |
 //! | GET | `get_market` | `/markets/{market_id}` |
 //!
+//!
 //! ## Multi-ID lookups for `get_market`
 //!
 //! The Nordnet API path parameter for `get_market` accepts a comma-separated
 //! list of market IDs. This method covers the single-ID case via the
 //! [`MarketId`] newtype, mirroring the [`Client::get_country`] pattern. A
 //! future helper may be added for multi-ID lookups when needed.
+//!
 //!
 //! ## 204 No Content
 //!

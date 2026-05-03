@@ -1,27 +1,16 @@
 //! Models for the `orders` resource group.
 //!
-//! Schemas are derived from these `docs-extract/_definitions/` files:
+//! Derived from the Nordnet `Order`, `OrderReply`, `ActivationCondition`,
+//! `Validity`, `Amount` (modelled as [`OrderAmount`]) and `TradableId`
+//! schemas plus the per-op parameter tables.
 //!
-//! - `Order.md`
-//! - `OrderReply.md`
-//! - `ActivationCondition.md`
-//! - `Validity.md`
-//! - `Amount.md` (modelled locally as [`OrderAmount`] — see Doc notes
-//!   below)
-//! - `TradableId.md`
 //!
-//! Plus the per-op parameter tables in `docs-extract/orders/`.
-//!
-//! ## Doc notes (for Phase 3X reconciliation)
+//! ## Doc notes
 //!
 //! - **Wire format for `place_order` / `modify_order`: `application/x-www-form-urlencoded`.**
 //!   The parameter tables describe every body parameter as Swagger 2.0
 //!   `FormData`. The resource layer sends these via
-//!   [`crate::Client::post_form`] / [`crate::Client::put_form`] (added as
-//!   the Phase 0 amendment recorded in `PROCESS.md` §"Locked decisions"
-//!   item 9). The request fixtures (`*.request.json`) are the canonical
-//!   model representation of the payload — the wire transformation
-//!   (urlencoded) is documented in each fixture's `.meta.toml`. The
+//!   [`crate::Client::post_form`] / [`crate::Client::put_form`]. The
 //!   request structs intentionally do NOT carry the
 //!   `rust_decimal::serde::arbitrary_precision_option` adapter on
 //!   `Decimal` fields (it serializes via a `serde_json` magic struct that
@@ -31,20 +20,18 @@
 //! - This module's [`OrderType`] enum is the closed set of values
 //!   accepted by `place_order` on the request side. The structurally
 //!   different `(name, type)` pair in the `tradables` group lives there
-//!   as [`crate::models::tradables::AllowedOrderType`] (renamed during
-//!   post-Phase-5 hardening to remove the previous name collision).
+//!   as [`crate::models::tradables::AllowedOrderType`].
 //! - `ActivationCondition` exists in two distinct shapes in the docs:
 //!   the **request** form is a single enum string sent as the
 //!   `activation_condition` form field on `place_order`; the **response**
-//!   form (per `_definitions/ActivationCondition.md`) is a struct nested
-//!   inside `Order`. We model both: [`OrderActivationCondition`] (enum,
-//!   request) and [`ActivationCondition`] (struct, response).
+//!   form is a struct nested inside `Order`. We model both:
+//!   [`OrderActivationCondition`] (enum, request) and
+//!   [`ActivationCondition`] (struct, response).
 //! - `Order.modified` is documented as `integer(int64)` UNIX-millisecond
-//!   epoch. Kept as `i64` here — no `EpochMillis` newtype exists under
-//!   `crate::models::shared`. Same precedent as `tradables::PublicTrade`.
+//!   epoch. Kept as `i64`. Same precedent as `tradables::PublicTrade`.
 //! - Several numeric fields on `Order` are typed as `number(double)` in
-//!   the docs (`open_volume`, `traded_volume`, `volume`). Per CONTRACTS.md
-//!   they are modelled as [`rust_decimal::Decimal`] with the
+//!   the docs (`open_volume`, `traded_volume`, `volume`). They are
+//!   modelled as [`rust_decimal::Decimal`] with the
 //!   `arbitrary_precision` adapter — never `f64`. Because of this `Order`
 //!   cannot derive [`Eq`].
 //! - The `Validity` definition models `valid_until` as
@@ -56,15 +43,11 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 // ---------------------------------------------------------------------------
-// Money shape — see Phase 3X note below
+// Money shape
 // ---------------------------------------------------------------------------
 
-/// Re-export of the shared `{currency, value}` amount type. Phase 3X
-/// promoted the local `OrderAmount` struct to
-/// [`crate::models::shared::AmountWithCurrency`] (the `accounts` group had
-/// an equivalent local type with the same field shape — see PROCESS.md
-/// "Locked decisions" item 11). The local spelling `OrderAmount` is kept
-/// as an alias for source compatibility.
+/// Re-export of the shared `{currency, value}` amount type, kept under the
+/// in-group spelling `OrderAmount`.
 pub use crate::models::shared::AmountWithCurrency as OrderAmount;
 
 // ---------------------------------------------------------------------------
@@ -72,8 +55,8 @@ pub use crate::models::shared::AmountWithCurrency as OrderAmount;
 // ---------------------------------------------------------------------------
 
 /// Composite key identifying a tradable (market + symbol). Wire form is
-/// the nested object `{ "identifier": "...", "market_id": ... }` per
-/// `_definitions/TradableId.md`.
+/// the nested object `{ "identifier": "...", "market_id": ... }` per the
+/// documented `TradableId` schema.
 ///
 /// Note: this is the *response-body* nested representation. The
 /// `tradables::TradableKey` value (which renders as `market_id:identifier`
@@ -88,12 +71,11 @@ pub struct OrderTradable {
 
 /// Activation-condition object nested inside [`Order`] (response shape).
 ///
-/// Schema: `_definitions/ActivationCondition.md`. `type` is the documented
-/// enum; renamed from the wire `type` (Rust keyword) via `#[serde(rename)]`.
+/// `type` is the documented enum; renamed from the wire `type` (Rust
+/// keyword) via `#[serde(rename)]`.
 ///
 /// `trailing_value` and `trigger_value` are `number(double)` per the
-/// schema; modelled as `Decimal` per CONTRACTS.md, so this struct cannot
-/// derive [`Eq`].
+/// schema; modelled as `Decimal`, so this struct cannot derive [`Eq`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct ActivationCondition {
     /// The fix point that the trigger_value and target_value percent is
@@ -395,8 +377,6 @@ pub enum OrderActivationCondition {
 
 /// Request body for `place_order` (`POST /accounts/{accid}/orders`).
 ///
-/// Per the parameter table in `docs-extract/orders/place_order.md`.
-///
 /// Wire format: `application/x-www-form-urlencoded` (Swagger 2.0
 /// `FormData`). Sent via [`crate::Client::post_form`]. The struct is flat
 /// (no nested objects, sequences, or maps) so `serde_urlencoded` accepts
@@ -409,8 +389,8 @@ pub enum OrderActivationCondition {
 /// so `None` is omitted from the wire body.
 ///
 /// `price`, `target_value`, `trigger_value` are documented as
-/// `number(double)`. Modelled as `Decimal` per CONTRACTS.md (never
-/// `f64`), so this type cannot derive [`Eq`]. The `Decimal` fields
+/// `number(double)`. Modelled as `Decimal` (never `f64`), so this type
+/// cannot derive [`Eq`]. The `Decimal` fields
 /// intentionally do NOT carry the `arbitrary_precision_option` adapter:
 /// it relies on a `serde_json`-private magic struct that
 /// `serde_urlencoded` rejects with `unsupported value`. Default
@@ -473,17 +453,16 @@ pub struct PlaceOrderRequest {
 /// Request body for `modify_order`
 /// (`PUT /accounts/{accid}/orders/{order_id}`).
 ///
-/// Per the parameter table in `docs-extract/orders/modify_order.md`. All
-/// fields optional; the doc notes `currency` is required when `price` is
-/// changed but enforces no compile-time invariant.
+/// All fields optional; the doc notes `currency` is required when `price`
+/// is changed but enforces no compile-time invariant.
 ///
 /// Wire format: `application/x-www-form-urlencoded` (Swagger 2.0
 /// `FormData`). Sent via [`crate::Client::put_form`]. See the
 /// [`PlaceOrderRequest`] note for why `Decimal` fields omit the
 /// `arbitrary_precision_option` adapter.
 ///
-/// `price` is `number(double)` per the docs, modelled as `Decimal` per
-/// CONTRACTS.md; this type cannot derive [`Eq`].
+/// `price` is `number(double)` per the docs, modelled as `Decimal`; this
+/// type cannot derive [`Eq`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct ModifyOrderRequest {

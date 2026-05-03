@@ -1,65 +1,43 @@
 //! Models for the `accounts` resource group.
 //!
-//! Derived strictly from these schema files in `docs-extract/_definitions/`:
+//! Derived from the Nordnet `Account`, `AccountInfo`,
+//! `AccountTransactionsToday`, `Amount`, `Ledger`, `LedgerInformation`,
+//! `Position`, `Reserved`, `Trade`, `TradableId` (schema object) and
+//! `Instrument` (referenced from `Position.instrument`) schemas.
 //!
-//! - `Account.md`
-//! - `AccountInfo.md`
-//! - `AccountTransactionsToday.md`
-//! - `Amount.md`
-//! - `Ledger.md`
-//! - `LedgerInformation.md`
-//! - `Position.md`
-//! - `Reserved.md`
-//! - `Trade.md`
-//! - `TradableId.md` (the schema object — distinct from
-//!   [`crate::ids::TradableId`], which is the bare-string newtype)
-//! - `Instrument.md` (referenced from `Position.instrument`)
-//!
-//! Per CONTRACTS.md, every referenced type is defined locally here. Cross-group
-//! deduplication (e.g. with the structurally similar `instruments::Instrument`,
-//! and the documented `Amount` schema vs `crate::models::shared::Money`) is
-//! deferred to Phase 3X.
 //!
 //! ## Doc notes
 //!
 //! - The documented `Amount` schema is `{currency: string, value:
-//!   number(double)}`. Phase 3X promoted this to
-//!   [`crate::models::shared::AmountWithCurrency`]; the local `Amount`
-//!   alias below is kept for source compatibility (typedef'd to the
-//!   shared type) and uses [`crate::models::shared::Currency`] for the
-//!   `currency` field. Wire format unchanged (Currency is
-//!   `serde(transparent)` over `String`).
-//! - [`PositionInstrument`] is a local definition for the `Instrument` type
-//!   used by `Position.instrument`. The full `instruments::Instrument` lives
-//!   in another group's models module; `crate::models::shared` cannot host
-//!   it (locked after Phase 0). Only the fields we have schema evidence for
-//!   are present here. Cross-group `Instrument` consolidation deferred —
-//!   the two shapes have different field sets (the `Position.instrument`
-//!   shape lacks `tradables`, `underlyings`, `key_information_documents`,
-//!   `mifid2_category`, etc.).
+//!   number(double)}`. The local `Amount` alias is typedef'd to
+//!   [`crate::models::shared::AmountWithCurrency`] and uses the
+//!   [`crate::models::shared::Currency`] newtype for `currency`. Wire
+//!   format unchanged (Currency is `serde(transparent)` over `String`).
+//! - [`PositionInstrument`] is a local definition for the `Instrument`
+//!   type used by `Position.instrument`. The full `instruments::Instrument`
+//!   lives in another group's models module. Only the fields we have
+//!   schema evidence for are present here. The two shapes have different
+//!   field sets (the `Position.instrument` shape lacks `tradables`,
+//!   `underlyings`, `key_information_documents`, `mifid2_category`, etc.).
 //! - [`TradableRef`] is the documented `TradableId` *schema object*
 //!   (`{identifier, market_id}`) used as the `tradable` field of
 //!   [`Trade`]. The bare-string newtype `crate::ids::TradableId` is a
 //!   different concept (a single `identifier` value); we keep both
-//!   distinct here. (See also `orders::OrderTradable` for the same wire
-//!   shape under a different name — kept duplicated as 2-group dup
-//!   without field-shape divergence.)
+//!   distinct here.
 //! - `Position.qty` and `Trade.volume` are `number(float)` /
 //!   `number(double)` per the schema. They are typed as
 //!   [`rust_decimal::Decimal`] (with the `arbitrary_precision` adapter)
-//!   per CONTRACTS.md. Because of this `Position`, `Trade`,
+//!   — never `f64`. Because of this `Position`, `Trade`,
 //!   [`crate::models::shared::AmountWithCurrency`], `AccountInfo`,
 //!   `Ledger`, `LedgerInformation`, `Reserved` and
 //!   `AccountTransactionsToday` cannot derive [`Eq`].
 //! - `Account.atyid` is documented as `integer(int32)`. Kept as `i32`.
 //! - `Trade.tradetime` is `integer(int64)` UNIX milliseconds. Kept as
-//!   plain `i64` (no `EpochMillis` newtype exists under
-//!   `crate::models::shared`).
-//! - `AccountInfo.registration_date` is `string(date)` (`YYYY-MM-DD`).
-//!   Phase 3X switched it from `Option<String>` to `Option<time::Date>`
-//!   via [`crate::models::shared::date_iso8601::option`].
-//! - `PositionInstrument.expiration_date` (same `string(date)` shape) was
-//!   likewise switched in Phase 3X.
+//!   plain `i64`.
+//! - `AccountInfo.registration_date` is `string(date)` (`YYYY-MM-DD`),
+//!   serialized via [`crate::models::shared::date_iso8601::option`].
+//! - `PositionInstrument.expiration_date` (same `string(date)` shape) is
+//!   typed the same way.
 //! - The `Account.type` and `AccountInfo.account_currency` fields are bare
 //!   strings per the schema; we deliberately do NOT use
 //!   [`crate::models::shared::Currency`] for `account_currency` because
@@ -72,10 +50,9 @@ use crate::models::shared::{date_iso8601, opt_arb_prec};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-/// Local source-compatibility alias for the documented `Amount` schema
-/// (`{currency, value}`). Phase 3X promoted the type to
-/// [`crate::models::shared::AmountWithCurrency`]; this `pub use` keeps
-/// the in-group spelling (`Amount`) working at every reference site.
+/// In-group alias for the documented `Amount` schema (`{currency, value}`),
+/// which is shared with other groups via
+/// [`crate::models::shared::AmountWithCurrency`].
 pub use crate::models::shared::AmountWithCurrency as Amount;
 
 /// One Nordnet account the authenticated user has access to.
@@ -185,8 +162,7 @@ pub struct AccountInfo {
     /// The pawn value of all positions combined.
     pub pawn_value: Amount,
     /// The registration date of the account formatted as `YYYY-MM-DD`;
-    /// typed as [`time::Date`] via the `date_iso8601::option` adapter
-    /// (Phase 3X).
+    /// typed as [`time::Date`] via the `date_iso8601::option` adapter.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -260,7 +236,6 @@ pub struct AccountTransactionsToday {
 /// (required + commonly-populated optional) are exposed here. The full
 /// `Instrument` type lives in `models/instruments.rs` for that group's
 /// own ops; we keep a local copy here per the module-ownership rule.
-/// Phase 3X may consolidate.
 ///
 /// Cannot derive [`Eq`] because several `number(double)` fields are
 /// typed as `Decimal`.
@@ -278,7 +253,7 @@ pub struct PositionInstrument {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dividend_policy: Option<String>,
     /// Expiration date if applicable. `YYYY-MM-DD` per schema; typed as
-    /// [`time::Date`] via the `date_iso8601::option` adapter (Phase 3X).
+    /// [`time::Date`] via the `date_iso8601::option` adapter.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -291,8 +266,7 @@ pub struct PositionInstrument {
     /// Unique identifier of the instrument. May be 0 if the instrument
     /// is not tradable. Plain `i64` rather than `crate::ids::InstrumentId`
     /// because the documented `Position` schema does not specify the
-    /// strong-typed shape here, and 0 is a sentinel value; cross-group
-    /// reconciliation (with `instruments::Instrument`) belongs in Phase 3X.
+    /// strong-typed shape here, and 0 is a sentinel value.
     pub instrument_id: i64,
     /// The instrument type.
     pub instrument_type: String,
@@ -306,7 +280,7 @@ pub struct PositionInstrument {
     /// The MiFID II category of the instrument.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mifid2_category: Option<i32>,
-    /// The instrument multiplier. `Decimal` per CONTRACTS.md.
+    /// The instrument multiplier. `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -316,14 +290,14 @@ pub struct PositionInstrument {
     /// The instrument name.
     pub name: String,
     /// Number of securities, not available for all instruments. `Decimal`
-    /// per CONTRACTS.md.
+    /// (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "opt_arb_prec"
     )]
     pub number_of_securities: Option<Decimal>,
-    /// The pawn percentage if applicable. `Decimal` per CONTRACTS.md.
+    /// The pawn percentage if applicable. `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -340,7 +314,7 @@ pub struct PositionInstrument {
     /// The sector group of the instrument.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sector_group: Option<String>,
-    /// Strike price if applicable. `Decimal` per CONTRACTS.md.
+    /// Strike price if applicable. `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -383,7 +357,7 @@ pub struct Position {
     /// `integer(int32)` per schema.
     pub pawn_percent: i32,
     /// The quantity of the position. `number(float)` per schema; typed
-    /// as [`Decimal`] per CONTRACTS.md (never `f32`/`f64`).
+    /// as [`Decimal`] (never `f32`/`f64`).
     #[serde(with = "rust_decimal::serde::arbitrary_precision")]
     pub qty: Decimal,
 }
@@ -436,12 +410,7 @@ pub struct Trade {
     /// plain `i64` — see module doc note).
     pub tradetime: i64,
     /// The volume of the trade. `number(double)` per schema; typed as
-    /// [`Decimal`] per CONTRACTS.md (never `f64`).
+    /// [`Decimal`] (never `f64`).
     #[serde(with = "rust_decimal::serde::arbitrary_precision")]
     pub volume: Decimal,
 }
-
-// Phase 3X: the `Option<Decimal>` arbitrary-precision adapter that used
-// to live here was promoted to `crate::models::shared::opt_arb_prec` (it
-// was duplicated in 4 group files — see PROCESS.md "Locked decisions"
-// item 11).

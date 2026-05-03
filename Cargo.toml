@@ -15,7 +15,6 @@ rust-version = "1.80"
 repository = "https://github.com/Alfredvc/nordnet-cli"
 
 # Pinned to current stable releases (verified against crates.io).
-# See PROCESS.md Phase 0 for rationale.
 [workspace.dependencies]
 # HTTP / async
 reqwest = { version = "0.13.3", default-features = false, features = ["json", "rustls", "http2"] }

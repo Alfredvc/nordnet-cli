@@ -1,7 +1,5 @@
 //! Models for the `instruments` resource group.
-//!
-//! Derived strictly from these schema files in `docs-extract/_definitions/`:
-//!
+//! Derived strictly from these schema files in the docs:
 //! - `Instrument.md`
 //! - `InstrumentType.md`
 //! - `InstrumentEligibility.md`
@@ -12,13 +10,11 @@
 //! - `UnderlyingInfo.md`
 //! - `KeyInformationDocuments.md`
 //! - `PublicTrade.md`
-//!
-//! Per CONTRACTS.md every referenced type is defined locally here. Cross-group
-//! deduplication (e.g. with the structurally similar `tradables` group types,
-//! which also defines `PublicTrade`) is deferred to Phase 3X.
+//!   Per the project conventions every referenced type is defined locally here. Cross-group
+//!   deduplication (e.g. with the structurally similar `tradables` group types,
+//!   which also defines `PublicTrade`) is deferred to Phase 3X.
 //!
 //! ## Doc notes
-//!
 //! - `instrument_id` in [`InstrumentEligibility`] and [`InstrumentPublicTrades`]
 //!   is documented as `integer(int32)` whereas every other `instrument_id` in
 //!   the API is `integer(int64)`. We keep the uniform [`InstrumentId`] newtype
@@ -40,7 +36,7 @@
 //!   do NOT use `crate::models::shared::Currency`: the Nordnet schema does
 //!   not specify the typed shape, so harmonisation deferred.
 //! - `number(double)` fields are typed as [`rust_decimal::Decimal`] (with the
-//!   `arbitrary_precision` adapter) per CONTRACTS.md — never `f64`. The
+//!   `arbitrary_precision` adapter) — never `f64`. The
 //!   resulting types cannot derive [`Eq`]. The `Option<Decimal>` adapter
 //!   was promoted to [`crate::models::shared::opt_arb_prec`] in Phase 3X.
 //! - `UnderlyingInfo` exposes BOTH `instrument_id` (required) AND the legacy
@@ -61,8 +57,7 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 /// URLs to key information documents (KIDs).
-///
-/// Schema: `_definitions/KeyInformationDocuments.md`. All fields are
+/// All fields are
 /// optional per the doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct KeyInformationDocuments {
@@ -78,9 +73,7 @@ pub struct KeyInformationDocuments {
 }
 
 /// One underlying instrument reference.
-///
-/// Schema: `_definitions/UnderlyingInfo.md`.
-///
+/// ///
 /// The schema lists BOTH `instrument_id` (required) and the misspelled
 /// legacy `instrumment_id` (optional). The Rust field for the misspelled
 /// variant preserves the typo to keep the legacy nature self-documenting
@@ -101,10 +94,8 @@ pub struct UnderlyingInfo {
 }
 
 /// One tradable variant of an instrument.
-///
-/// Schema: `_definitions/Tradable.md`. All fields are required.
-///
-/// `lot_size` is `number(double)` — typed as [`Decimal`] per CONTRACTS.md.
+/// All fields are required.
+/// `lot_size` is `number(double)` — typed as [`Decimal`].
 /// As a result this type cannot derive [`Eq`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Tradable {
@@ -116,7 +107,7 @@ pub struct Tradable {
     /// unchanged) for consistency with the rest of the API surface.
     pub identifier: TradableId,
     /// The lot size of the tradable. `Decimal` (never `f64`) per
-    /// CONTRACTS.md.
+    /// the project conventions.
     #[serde(with = "rust_decimal::serde::arbitrary_precision")]
     pub lot_size: Decimal,
     /// Nordnet market identifier.
@@ -130,8 +121,7 @@ pub struct Tradable {
 }
 
 /// An instrument as returned by `GET /instruments/...` responses.
-///
-/// Schema: `_definitions/Instrument.md` (28 fields). Several fields use
+/// Schema: the schema (28 fields). Several fields use
 /// `number(double)` and are typed as [`Decimal`] — as a result this type
 /// cannot derive [`Eq`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -149,7 +139,7 @@ pub struct Instrument {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dividend_policy: Option<String>,
     /// Expiration date if applicable. `YYYY-MM-DD` per the schema; typed
-    /// as [`time::Date`] via the `date_iso8601::option` adapter (Phase 3X).
+    /// as [`time::Date`] via the `date_iso8601::option` adapter.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -170,14 +160,14 @@ pub struct Instrument {
     /// URLs to key information documents (KIDs) if available.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub key_information_documents: Option<KeyInformationDocuments>,
-    /// The leverage percentage if applicable. `Decimal` per CONTRACTS.md.
+    /// The leverage percentage if applicable. `Decimal`.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "opt_arb_prec"
     )]
     pub leverage_percentage: Option<Decimal>,
-    /// The margin percentage if applicable. `Decimal` per CONTRACTS.md.
+    /// The margin percentage if applicable. `Decimal`.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -192,7 +182,7 @@ pub struct Instrument {
     /// user can trade the instrument.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mifid2_category: Option<i32>,
-    /// The instrument multiplier. `Decimal` per CONTRACTS.md.
+    /// The instrument multiplier. `Decimal`.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -202,14 +192,14 @@ pub struct Instrument {
     /// The instrument name.
     pub name: String,
     /// Number of securities, not available for all instruments.
-    /// `Decimal` per CONTRACTS.md.
+    /// `Decimal`.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "opt_arb_prec"
     )]
     pub number_of_securities: Option<Decimal>,
-    /// The pawn percentage if applicable. `Decimal` per CONTRACTS.md.
+    /// The pawn percentage if applicable. `Decimal`.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -232,7 +222,7 @@ pub struct Instrument {
     /// The SFDR article of a fund. Can be 6, 8 or 9.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sfdr_article: Option<i32>,
-    /// Strike price if applicable. `Decimal` per CONTRACTS.md.
+    /// Strike price if applicable. `Decimal`.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -241,7 +231,7 @@ pub struct Instrument {
     pub strike_price: Option<Decimal>,
     /// The instrument symbol, e.g. `ERIC B`.
     pub symbol: String,
-    /// Total fee. `Decimal` per CONTRACTS.md.
+    /// Total fee. `Decimal`.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -258,8 +248,7 @@ pub struct Instrument {
 }
 
 /// One Nordnet instrument type.
-///
-/// Schema: `_definitions/InstrumentType.md`. All fields are required.
+/// All fields are required.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct InstrumentType {
     /// The instrument type code.
@@ -269,9 +258,7 @@ pub struct InstrumentType {
 }
 
 /// Customer trading eligibility for a single instrument.
-///
-/// Schema: `_definitions/InstrumentEligibility.md`. All fields are required.
-///
+/// All fields are required.
 /// Note: `instrument_id` is documented as `integer(int32)` here while every
 /// other `instrument_id` in the API is `integer(int64)`. We keep the uniform
 /// [`InstrumentId`] (`i64`) newtype — see module doc note.
@@ -284,9 +271,7 @@ pub struct InstrumentEligibility {
 }
 
 /// One public trade executed on the marketplace.
-///
-/// Schema: `_definitions/PublicTrade.md`.
-///
+/// ///
 /// Cannot derive [`Eq`] because `price` is a `Decimal`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct PublicTrade {
@@ -298,7 +283,7 @@ pub struct PublicTrade {
     pub broker_selling: Option<String>,
     /// Market ID.
     pub market_id: MarketId,
-    /// The price of the trade. `Decimal` (never `f64`) per CONTRACTS.md.
+    /// The price of the trade. `Decimal` (never `f64`).
     #[serde(with = "rust_decimal::serde::arbitrary_precision")]
     pub price: Decimal,
     /// Tick timestamp. UNIX time in milliseconds.
@@ -315,9 +300,7 @@ pub struct PublicTrade {
 }
 
 /// Public trades for a single instrument.
-///
-/// Schema: `_definitions/InstrumentPublicTrades.md`.
-///
+/// ///
 /// Cannot derive [`Eq`] because the nested [`PublicTrade::price`] is a
 /// `Decimal`. `instrument_id` is documented as `integer(int32)` — see
 /// module doc note.
@@ -330,8 +313,7 @@ pub struct InstrumentPublicTrades {
 }
 
 /// One issuer of a leverage instrument.
-///
-/// Schema: `_definitions/Issuer.md`. Both fields are required.
+/// Both fields are required.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Issuer {
     /// Unique issuer ID.
@@ -341,15 +323,14 @@ pub struct Issuer {
 }
 
 /// Valid leverage instruments filter values for a given underlying.
-///
-/// Schema: `_definitions/LeverageFilter.md`. All fields are required.
+/// All fields are required.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct LeverageFilter {
     /// List of valid currencies.
     pub currencies: Vec<String>,
     /// List of valid expiry dates (`YYYY-MM-DD` per Nordnet date
     /// convention); typed as [`time::Date`] via `date_iso8601::vec`
-    /// (Phase 3X).
+    ///.
     #[serde(with = "date_iso8601::vec")]
     pub expiration_dates: Vec<time::Date>,
     /// List of valid instrument group types.

@@ -1,7 +1,5 @@
 //! Tests for the `accounts` resource group.
-//!
-//! Three test layers per CONTRACTS.md:
-//!
+//! Three test layers:
 //! 1. Fixture roundtrip — every fixture parses under `deny_unknown_fields`
 //!    and re-serializes to the same canonical JSON `Value`. Plus a
 //!    Decimal precision survival test on `Trade::volume`.

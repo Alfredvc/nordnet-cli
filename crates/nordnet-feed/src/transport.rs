@@ -137,7 +137,10 @@ fn tls_config() -> Arc<rustls::ClientConfig> {
 /// crash-free under unforeseen library churn.
 fn map_tls_connect_err(io: io::Error) -> FeedError {
     if io.get_ref().is_some_and(|e| e.is::<rustls::Error>()) {
-        match io.into_inner().and_then(|e| e.downcast::<rustls::Error>().ok()) {
+        match io
+            .into_inner()
+            .and_then(|e| e.downcast::<rustls::Error>().ok())
+        {
             Some(rustls_err) => FeedError::Tls(*rustls_err),
             None => FeedError::Io(io::Error::other(
                 "rustls error type-erased after type check",

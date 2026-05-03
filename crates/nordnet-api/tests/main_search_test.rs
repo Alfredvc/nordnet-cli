@@ -1,7 +1,5 @@
 //! Tests for the `main_search` resource group.
-//!
-//! Three test layers per CONTRACTS.md:
-//!
+//! Three test layers:
 //! 1. Fixture roundtrip — `search.response.json` parses under
 //!    `deny_unknown_fields` and re-serializes to the same canonical JSON
 //!    `Value`. Includes a separate Decimal-precision roundtrip to verify
@@ -124,7 +122,7 @@ fn search_fixture_roundtrip() {
     assert_eq!(news.limit, None);
     assert_eq!(news.total, None);
 
-    // Canonical roundtrip per CONTRACTS.md test rule 1.
+    // Canonical roundtrip test rule 1.
     let canonical: serde_json::Value =
         serde_json::from_str(raw).expect("fixture must parse as Value");
     let re = serde_json::to_string(&parsed).expect("must re-serialize");
@@ -138,19 +136,19 @@ fn optional_decimal_precision_survives_roundtrip() {
     // Verifies the `opt_arb_prec` adapter on Option<Decimal> fields
     // preserves multi-significant-digit precision through serde.
     let raw = r#"[
-      {
-        "display_group_description": "Equities",
-        "display_group_type": "EQUITY",
-        "results": [
-          {
-            "display_name": "Precision Test",
-            "last_price": { "decimals": 8, "price": 12345.67891234 },
-            "spread_pct": 0.000001,
-            "turnover": 9999999999.999999
-          }
-        ]
-      }
-    ]"#;
+ {
+ "display_group_description": "Equities",
+ "display_group_type": "EQUITY",
+ "results": [
+ {
+ "display_name": "Precision Test",
+ "last_price": { "decimals": 8, "price": 12345.67891234 },
+ "spread_pct": 0.000001,
+ "turnover": 9999999999.999999
+ }
+ ]
+ }
+ ]"#;
     let parsed: Vec<MainSearchResponse> = serde_json::from_str(raw).unwrap();
     let row = &parsed[0].results[0];
     assert_eq!(

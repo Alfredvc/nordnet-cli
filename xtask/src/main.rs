@@ -1,18 +1,13 @@
-//! Workspace task runner. Three subcommands (per PROCESS.md §"Phase 0"):
+//! Workspace task runner.
 //!
-//! - `gen-mods` — regenerates every `mod.rs` from the filesystem.
-//! - `extract-docs --html <path>` — re-extract per-op docs + fixtures.
-//! - `consistency-check` — cross-source + cross-endpoint checker.
-//!   Stub in Phase 0; implemented by Phase 2C / 3X.
+//! - `gen-mods` — regenerates every managed `mod.rs` from the filesystem.
 //!
-//! Run with: `cargo run -p xtask -- <subcommand>`.
+//! Run with: `cargo run -p xtask -- gen-mods`.
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use std::fs;
 use std::path::{Path, PathBuf};
-
-mod extract_docs;
 
 #[derive(Debug, Parser)]
 #[command(name = "xtask", version, about = "Nordnet CLI workspace tasks.")]
@@ -26,64 +21,31 @@ enum Cmd {
     /// Regenerate every `mod.rs` under managed directories from the
     /// filesystem. Idempotent.
     GenMods,
-
-    /// Re-extract per-operation docs + fixtures from the saved HTML.
-    ExtractDocs {
-        /// Path to the saved Nordnet API reference HTML.
-        #[arg(long)]
-        html: PathBuf,
-    },
-
-    /// Cross-source + cross-endpoint doc consistency report. Stub in
-    /// Phase 0 — full implementation lands in Phase 2C / 3X.
-    ConsistencyCheck,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Cmd::GenMods => gen_mods(),
-        Cmd::ExtractDocs { html } => extract_docs::run(&html),
-        Cmd::ConsistencyCheck => {
-            eprintln!(
-                "consistency-check is not yet implemented (Phase 0 stub). \
-                 Will run cross-source + cross-endpoint checks in Phase 2C / 3X."
-            );
-            Ok(())
-        }
     }
 }
 
 /// The set of directories whose `mod.rs` we manage. Each entry is rooted
 /// at the workspace root.
-const MOD_DIRS: &[(&str, ManagedKind)] = &[
-    ("crates/nordnet-api/src/models", ManagedKind::ModelsApi),
-    ("crates/nordnet-api/src/resources", ManagedKind::PlainPub),
-    ("crates/nordnet-cli/src/cmd", ManagedKind::PlainPub),
-    ("crates/nordnet-model/src/models", ManagedKind::ModelsApi),
+const MOD_DIRS: &[&str] = &[
+    "crates/nordnet-api/src/resources",
+    "crates/nordnet-cli/src/cmd",
+    "crates/nordnet-model/src/models",
 ];
-
-#[derive(Clone, Copy)]
-enum ManagedKind {
-    /// `models/`: `shared` is special — it must always be declared even
-    /// if other group files come and go.
-    ModelsApi,
-    /// `resources/` and `cmd/`: just `pub mod <stem>;` for every `*.rs`
-    /// in the directory other than `mod.rs`.
-    PlainPub,
-}
 
 fn gen_mods() -> Result<()> {
     let workspace_root = workspace_root()?;
-    for (rel, kind) in MOD_DIRS {
+    for rel in MOD_DIRS {
         let dir = workspace_root.join(rel);
         if !dir.exists() {
-            // Optional directory — skip silently. Phase 3 implementers
-            // create per-group files under these directories.
             continue;
         }
-        let body =
-            build_mod_body(&dir, *kind).with_context(|| format!("scanning {}", dir.display()))?;
+        let body = build_mod_body(&dir).with_context(|| format!("scanning {}", dir.display()))?;
         let mod_path = dir.join("mod.rs");
         let new_contents = format!(
             "// GENERATED — do not hand-edit. Regenerate with `cargo xtask gen-mods`.\n{body}"
@@ -93,7 +55,7 @@ fn gen_mods() -> Result<()> {
     Ok(())
 }
 
-fn build_mod_body(dir: &Path, kind: ManagedKind) -> Result<String> {
+fn build_mod_body(dir: &Path) -> Result<String> {
     let mut stems: Vec<String> = Vec::new();
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
@@ -116,7 +78,6 @@ fn build_mod_body(dir: &Path, kind: ManagedKind) -> Result<String> {
     for stem in &stems {
         body.push_str(&format!("pub mod {stem};\n"));
     }
-    let _ = kind; // reserved for future per-kind decoration (e.g. re-exports)
     Ok(body)
 }
 
@@ -132,9 +93,6 @@ fn write_if_changed(path: &Path, contents: &str) -> Result<()> {
 }
 
 fn workspace_root() -> Result<PathBuf> {
-    // We assume `cargo run -p xtask` is launched from the workspace
-    // root. Cargo sets `CARGO_MANIFEST_DIR` to the xtask crate; its
-    // parent is the workspace root.
     let manifest = std::env::var("CARGO_MANIFEST_DIR")
         .context("CARGO_MANIFEST_DIR not set; run via `cargo run -p xtask`")?;
     let p = PathBuf::from(manifest);

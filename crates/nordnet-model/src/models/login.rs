@@ -1,8 +1,8 @@
 //! Models for the `login` resource group.
 //!
-//! Schemas are derived from `docs-extract/_definitions/`:
-//! `ApiKeyLoginResponse.md`, `Feed.md`, and `LoggedInStatus.md`
-//! (kept under `crates/nordnet-api/docs-extract/`).
+//! Derived from the Nordnet `ApiKeyLoginResponse`, `Feed`, and
+//! `LoggedInStatus` schemas.
+//!
 //!
 //! ## Related types in [`crate::auth`]
 //!
@@ -13,6 +13,7 @@
 //! primitives in [`crate::auth`] — they are the inputs the signing
 //! helpers consume and produce, so the spec keeps them next to
 //! [`crate::auth::sign_challenge`] / [`crate::auth::parse_private_key_openssh`].
+//!
 //!
 //! ## Canonical [`ApiKeyLoginResponse`]
 //!
@@ -27,8 +28,6 @@ use crate::auth::Session;
 use serde::{Deserialize, Serialize};
 
 /// Connection information for one of the streaming feeds.
-///
-/// Schema: `docs-extract/_definitions/Feed.md`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Feed {
     /// `true` if the feed is encrypted (TLS).
@@ -41,10 +40,6 @@ pub struct Feed {
 }
 
 /// Response body from `POST /login/verify`.
-///
-/// Schema: `docs-extract/_definitions/ApiKeyLoginResponse.md`. Single
-/// canonical definition for the workspace — the loose duplicate that
-/// once lived under [`crate::auth`] has been removed.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct ApiKeyLoginResponse {
     /// The session expiration interval in seconds. This is the entire
@@ -78,8 +73,6 @@ impl From<&ApiKeyLoginResponse> for Session {
 }
 
 /// Response body from `PUT /login` (refresh) and `DELETE /login` (logout).
-///
-/// Schema: `docs-extract/_definitions/LoggedInStatus.md`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct LoggedInStatus {
     /// `true` if the session is valid.

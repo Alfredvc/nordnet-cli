@@ -8,12 +8,14 @@
 //! | GET | `list_tradable_trades` | `/tradables/trades/{tradables}` |
 //! | GET | `get_suitability` | `/tradables/validation/suitability/{tradables}` |
 //!
+//!
 //! ## Path encoding — [`TradableKey`]
 //!
 //! Each operation takes a single [`TradableKey`] (e.g. `11:101` for
 //! ERIC B). The Nordnet API also accepts a comma-separated list of keys at
 //! the path slot, but the typed surface stays single-key for now — Phase 4
 //! is expected to add a small helper for the multi-key shape.
+//!
 //!
 //! ## Naming — `list_tradable_trades`
 //!
@@ -23,12 +25,14 @@
 //! `instruments` groups (Rust resolves all three onto a single `Client`
 //! impl). Phase 3X may pick a uniform naming scheme.
 //!
+//!
 //! ## 204 No Content
 //!
 //! Every op may return HTTP 204 (No Content). The base [`Client::get`]
 //! treats an empty body as a [`Error::Decode`]; each method here maps that
 //! specific case to an empty `Vec`, mirroring the
 //! [`Client::get_country`] precedent.
+//!
 //!
 //! ## 403 No Content (`get_suitability`)
 //!

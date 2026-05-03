@@ -1,7 +1,6 @@
 //! `nordnet main_search` — top-level instrument search.
 //!
-//! Wired into main.rs as `nordnet search <query> [options]` per
-//! PROCESS.md §"CLI group decomposition" line 402.
+//! Wired into main.rs as `nordnet search <query> [options]`.
 
 use clap::{ArgAction, Args, Subcommand};
 

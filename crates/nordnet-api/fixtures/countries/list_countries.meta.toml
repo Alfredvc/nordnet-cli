@@ -1,5 +1,0 @@
-ops = ["list_countries"]
-request_fixture = false
-response_fixture = true
-fixture_provenance = "synthesized_from_schema"
-schema_source = "docs-extract/_definitions/Country.md"

@@ -1,36 +1,24 @@
 //! Models for the `news` resource group.
 //!
-//! Derived strictly from these schema files in `docs-extract/_definitions/`:
+//! Derived from the Nordnet `NewsArticle` and `NewsSource` schemas.
 //!
-//! - `NewsArticle.md`
-//! - `NewsSource.md`
 //!
-//! ## Doc notes (for Phase 3X reconciliation)
+//! ## Doc notes
 //!
-//! - `news_id` (`integer(int64)`) and `source_id` (`integer(int64)`) require
-//!   newtypes per CONTRACTS.md. The foundation `crate::ids` module is locked
-//!   and does not currently expose `NewsId` / `NewsSourceId`, so both are
-//!   defined LOCALLY here. Phase 3X may promote them to `crate::ids` and
-//!   migrate this module (and `models/main_search.rs`, which currently uses
-//!   a plain `i64` for `external_news_id`).
-//! - The `instruments` field in `NewsArticle` is documented as
+//! - `news_id` and `source_id` have local `NewsId` / `NewsSourceId`
+//!   newtypes here (rather than under `crate::ids`).
+//! - The `instruments` field on `NewsArticle` is documented as
 //!   `< integer > array` (no `(int64)` qualifier) while `instrument_id`
-//!   elsewhere in the docs is `integer(int64)`. We keep `Vec<InstrumentId>`
-//!   here on the basis that these are the same identifier; the schema
-//!   asymmetry is flagged for Phase 3X.
+//!   elsewhere in the docs is `integer(int64)`. We keep
+//!   `Vec<InstrumentId>` here on the basis that these are the same
+//!   identifier.
 //! - `timestamp` (`integer(int64)`) is documented as "milliseconds since
-//!   January 1st 1970 00:00:00 UTC". Following the precedent set in
-//!   `models/main_search.rs` (no epoch-millis `Timestamp` newtype exists in
-//!   `crate::models::shared`), we keep it as a plain `i64`.
+//!   January 1st 1970 00:00:00 UTC". Kept as a plain `i64`.
 
 use crate::ids::{InstrumentId, MarketId};
 use serde::{Deserialize, Serialize};
 
 /// External unique news article ID.
-///
-/// Defined here because `crate::ids` (foundation) is locked and does not
-/// currently expose `NewsId`. Phase 3X may promote this to
-/// `crate::ids::NewsId`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct NewsId(pub i64);
@@ -54,10 +42,6 @@ impl From<NewsId> for i64 {
 }
 
 /// Nordnet unique news source ID.
-///
-/// Defined here because `crate::ids` (foundation) is locked and does not
-/// currently expose `NewsSourceId`. Phase 3X may promote this to
-/// `crate::ids::NewsSourceId`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct NewsSourceId(pub i64);
@@ -81,8 +65,6 @@ impl From<NewsSourceId> for i64 {
 }
 
 /// A news article as returned by `GET /news/{item_id}`.
-///
-/// Schema source: `docs-extract/_definitions/NewsArticle.md`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct NewsArticle {
     /// Article body. Optional per schema.
@@ -142,8 +124,6 @@ pub struct NewsArticle {
 }
 
 /// A news source as returned by `GET /news_sources`.
-///
-/// Schema source: `docs-extract/_definitions/NewsSource.md`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct NewsSource {
     /// List containing the country codes affected by the news source.

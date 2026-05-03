@@ -1,14 +1,13 @@
 //! Models for the `root` resource group.
 //!
-//! Covers: `GET /api/2` (system status).
-//!
-//! Types are derived from `docs-extract/_definitions/Status.md`.
+//! Covers: `GET /api/2` (system status). Derived from the Nordnet `Status`
+//! schema.
 
 use serde::{Deserialize, Serialize};
 
 /// System status information returned by `GET /api/2`.
 ///
-/// All four fields are required per `_definitions/Status.md`.
+/// All four fields are required per the schema.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Status {
     /// Additional information from the server (e.g. maintenance notices).

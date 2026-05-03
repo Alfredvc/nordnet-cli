@@ -6,6 +6,7 @@
 //! |--------|----|------|
 //! | GET | `search` | `/main_search` |
 //!
+//!
 //! ## Query parameters
 //!
 //! `GET /main_search` takes one required and four optional query params:
@@ -21,6 +22,7 @@
 //! `instrument_group` and `search_space` enum values are passed through
 //! as `&str` for now (pragmatic; documented in the task contract). A
 //! later phase may introduce typed enums.
+//!
 //!
 //! ## 204 / 404 No Content
 //!

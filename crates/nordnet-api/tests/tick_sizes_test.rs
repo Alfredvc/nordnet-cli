@@ -1,6 +1,5 @@
 //! Tests for the `tick_sizes` resource group.
-//!
-//! Two test layers per CONTRACTS.md:
+//! Two test layers:
 //! 1. Fixture roundtrip — every fixture parses and re-serializes identically.
 //! 2. Wiremock integration — every op is called against a mock server.
 
@@ -48,7 +47,7 @@ fn list_tick_sizes_fixture_roundtrip() {
 
     // Canonical roundtrip: re-serialized form must equal the original fixture
     // when both are parsed as serde_json::Value (catches Decimal-as-string vs
-    // Decimal-as-number asymmetry per CONTRACTS.md test rule 1).
+    // Decimal-as-number asymmetry test rule 1).
     let canonical: serde_json::Value =
         serde_json::from_str(raw).expect("fixture must parse as Value");
     let re_serialized = serde_json::to_string(&parsed).expect("must re-serialize");
@@ -77,7 +76,7 @@ fn get_tick_size_fixture_roundtrip() {
     assert_eq!(last.tick, "0.10".parse::<Decimal>().unwrap());
     assert_eq!(last.to_price, "100.00".parse::<Decimal>().unwrap());
 
-    // Canonical roundtrip per CONTRACTS.md test rule 1.
+    // Canonical roundtrip test rule 1.
     let canonical: serde_json::Value =
         serde_json::from_str(raw).expect("fixture must parse as Value");
     let re_serialized = serde_json::to_string(&parsed).expect("must re-serialize");
@@ -89,18 +88,18 @@ fn get_tick_size_fixture_roundtrip() {
 fn decimal_precision_survives_roundtrip() {
     // Verify that a Decimal with many significant digits is not corrupted.
     let raw = r#"[
-      {
-        "tick_size_id": 3,
-        "ticks": [
-          {
-            "decimals": 6,
-            "from_price": 0.000001,
-            "tick": 0.000001,
-            "to_price": 0.999999
-          }
-        ]
-      }
-    ]"#;
+ {
+ "tick_size_id": 3,
+ "ticks": [
+ {
+ "decimals": 6,
+ "from_price": 0.000001,
+ "tick": 0.000001,
+ "to_price": 0.999999
+ }
+ ]
+ }
+ ]"#;
     let parsed: Vec<TicksizeTable> = serde_json::from_str(raw).unwrap();
     let interval = &parsed[0].ticks[0];
     assert_eq!(interval.from_price, "0.000001".parse::<Decimal>().unwrap());

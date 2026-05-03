@@ -7,6 +7,7 @@
 //! | GET | `get_news_item` | `/news/{item_id}` |
 //! | GET | `list_news_sources` | `/news_sources` |
 //!
+//!
 //! ## Multi-ID lookups for `get_news_item`
 //!
 //! The Nordnet API path parameter for `get_news_item` accepts a
@@ -15,6 +16,7 @@
 //! [`Client::get_market`] pattern. A future helper may be added for
 //! multi-ID lookups when needed (Phase 3X).
 //!
+//!
 //! ## 204 No Content
 //!
 //! `GET /news/{item_id}` may return HTTP 204 (No Content) when no matching
@@ -22,6 +24,7 @@
 //! empty response body as JSON, which fails. `get_news_item` detects this
 //! specific case (a [`Error::Decode`] with an empty body) and maps it to
 //! an empty `Vec`, mirroring [`Client::get_country`] / [`Client::get_market`].
+//!
 //!
 //! ## `body_format` query parameter
 //!

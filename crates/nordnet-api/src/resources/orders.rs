@@ -1,17 +1,14 @@
 //! Resource methods for the `orders` API group.
-//!
 //! # Operations
-//!
 //! | Method | Op | Path |
 //! |--------|----|------|
-//! | GET    | `list_orders`    | `/accounts/{accid}/orders` |
-//! | POST   | `place_order`    | `/accounts/{accid}/orders` |
-//! | PUT    | `modify_order`   | `/accounts/{accid}/orders/{order_id}` |
-//! | PUT    | `activate_order` | `/accounts/{accid}/orders/{order_id}/activate` |
-//! | DELETE | `cancel_order`   | `/accounts/{accid}/orders/{order_id}` |
+//! | GET | `list_orders` | `/accounts/{accid}/orders` |
+//! | POST | `place_order` | `/accounts/{accid}/orders` |
+//! | PUT | `modify_order` | `/accounts/{accid}/orders/{order_id}` |
+//! | PUT | `activate_order` | `/accounts/{accid}/orders/{order_id}/activate` |
+//! | DELETE | `cancel_order` | `/accounts/{accid}/orders/{order_id}` |
 //!
 //! ## 204 No Content (`list_orders`)
-//!
 //! `GET /accounts/{accid}/orders` is documented to return 204 with no
 //! body when there are no orders. The base [`Client::get`] surfaces an
 //! empty body as [`Error::Decode`]; [`Client::list_orders`] maps that
@@ -19,13 +16,11 @@
 //! [`Client::get_tradable_info`] precedent.
 //!
 //! ## Body-less PUT (`activate_order`)
-//!
 //! `activate_order` has no documented request body — we use
 //! [`Client::put_empty`] so the wire request omits `Content-Type` and
 //! sends a zero-length payload (precedent: `login::refresh_session`).
 //!
 //! ## Multi-account / multi-order paths
-//!
 //! The Nordnet API path slots accept comma-separated lists of IDs (e.g.
 //! `/accounts/1,2,3/orders`). The typed surface here stays single-id by
 //! default — Phase 4 (or callers) can build comma lists into a `String`
@@ -79,7 +74,7 @@ impl Client {
     /// `FormData`, so the request is sent as
     /// `application/x-www-form-urlencoded` via
     /// [`Client::post_form`]. JSON bodies are silently rejected by the
-    /// live endpoint. See `PROCESS.md` §"Locked decisions" item 9.
+    /// live endpoint. See `` §"Locked decisions" item 9.
     ///
     /// # Errors
     ///
@@ -101,7 +96,7 @@ impl Client {
     /// The Nordnet docs mark every body parameter as Swagger 2.0
     /// `FormData`, so the request is sent as
     /// `application/x-www-form-urlencoded` via [`Client::put_form`].
-    /// See `PROCESS.md` §"Locked decisions" item 9.
+    /// See `` §"Locked decisions" item 9.
     ///
     /// # Errors
     ///

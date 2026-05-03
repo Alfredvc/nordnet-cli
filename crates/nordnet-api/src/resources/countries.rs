@@ -7,6 +7,7 @@
 //! | GET | `list_countries` | `/countries` |
 //! | GET | `get_country` | `/countries/{country}` |
 //!
+//!
 //! ## Multi-code lookups for `get_country`
 //!
 //! The Nordnet API accepts comma-separated country codes in the path segment:
@@ -15,6 +16,7 @@
 //! ```ignore
 //! client.get_country("SE,NO").await?
 //! ```
+//!
 //!
 //! ## 204 No Content
 //!

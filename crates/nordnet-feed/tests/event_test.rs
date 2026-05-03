@@ -151,7 +151,8 @@ fn news_kind_renamed_from_type_round_trip() {
 fn news_missing_required_field_errors() {
     // News is push-once — required fields must be present. Verify the
     // deserializer rejects (rather than producing a silent default).
-    let json = r#"{"news_id":1,"lang":"sv","timestamp":1,"source_id":2,"headline":"H","instruments":[]}"#;
+    let json =
+        r#"{"news_id":1,"lang":"sv","timestamp":1,"source_id":2,"headline":"H","instruments":[]}"#;
     let r: Result<News, _> = serde_json::from_str(json);
     assert!(r.is_err(), "missing `type` must error on News, got {r:?}");
 }

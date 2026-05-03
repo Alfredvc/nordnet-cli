@@ -1,5 +1,0 @@
-ops = ["start_login"]
-request_fixture = true
-response_fixture = true
-fixture_provenance = "synthesized_from_schema"
-schema_source = "docs-extract/login/start_login.md"

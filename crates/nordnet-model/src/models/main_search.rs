@@ -1,7 +1,5 @@
 //! Models for the `main_search` resource group.
-//!
-//! Derived strictly from these schema files in `docs-extract/_definitions/`:
-//!
+//! Derived strictly from these schema files in the docs:
 //! - `MainSearchResponse.md`
 //! - `MainSearchResponseRow.md`
 //! - `PriceWithDecimals.md`
@@ -10,14 +8,12 @@
 //! - `MarketInfo.md`
 //! - `PriceKoInfo.md`
 //! - `StatusInfo.md`
-//!
-//! Per the CONTRACTS.md "no subagent edits files outside its own group"
-//! rule, every referenced type is defined locally here. Cross-group
-//! reconciliation (deduplication of e.g. `PriceWithDecimals` if other
-//! groups also use it) is deferred to Phase 3X.
+//!   Per the the project conventions "no subagent edits files outside its own group"
+//!   rule, every referenced type is defined locally here. Cross-group
+//!   reconciliation (deduplication of e.g. `PriceWithDecimals` if other
+//!   groups also use it) is deferred to Phase 3X.
 //!
 //! ## Doc notes
-//!
 //! - `external_news_id` (in `MainSearchResponseRow`) is documented as
 //!   `integer(int64)`. There is no `NewsId` newtype under `crate::ids`,
 //!   so the field is typed as plain `i64` here. (`models::news` defines
@@ -29,7 +25,7 @@
 //!   per the docs but are kept as plain `i64` (no `Timestamp` newtype
 //!   exists for epoch-millis under `crate::models::shared`).
 //! - `number(double)` fields are typed as [`rust_decimal::Decimal`]
-//!   instead of `f64` per CONTRACTS.md "Never `f64`". The
+//!   instead of `f64` "Never `f64`". The
 //!   `Option<Decimal>` adapter was promoted to
 //!   [`crate::models::shared::opt_arb_prec`] in Phase 3X (4-group dup).
 //! - `EtpInfo`, `KoInfo`, `MarketInfo`, `PriceKoInfo`, `PriceWithDecimals`
@@ -44,15 +40,14 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 /// A price value paired with its number of decimals.
-///
-/// Schema: `_definitions/PriceWithDecimals.md`. Both fields are optional
+/// Both fields are optional
 /// per the doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct PriceWithDecimals {
     /// Number of decimals.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub decimals: Option<i32>,
-    /// Price amount. `Decimal` (never `f64`) per CONTRACTS.md.
+    /// Price amount. `Decimal` (never `f64`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -62,8 +57,7 @@ pub struct PriceWithDecimals {
 }
 
 /// Exchange-Traded Product information.
-///
-/// Schema: `_definitions/EtpInfo.md`. All fields are optional per the doc.
+/// All fields are optional per the doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct EtpInfo {
     /// Certificate direction; localized.
@@ -88,18 +82,17 @@ pub struct EtpInfo {
 }
 
 /// Knock-out instrument structural information.
-///
-/// Schema: `_definitions/KoInfo.md`. All fields are optional per the doc.
+/// All fields are optional per the doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct KoInfo {
-    /// Financial level (strike price). `Decimal` per CONTRACTS.md.
+    /// Financial level (strike price). `Decimal`.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "opt_arb_prec"
     )]
     pub financial_level: Option<Decimal>,
-    /// Stop-loss (barrier price). `Decimal` per CONTRACTS.md.
+    /// Stop-loss (barrier price). `Decimal`.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -109,8 +102,7 @@ pub struct KoInfo {
 }
 
 /// Market information for a search-result row.
-///
-/// Schema: `_definitions/MarketInfo.md`. All fields are optional per the
+/// All fields are optional per the
 /// doc. Note this is structurally distinct from `crate::models::markets::Market`
 /// (which is what `GET /markets` returns); reconciliation belongs in Phase 3X.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -131,22 +123,21 @@ pub struct MarketInfo {
 }
 
 /// Knock-out instrument price information.
-///
-/// Schema: `_definitions/PriceKoInfo.md`. All fields are optional per the
+/// All fields are optional per the
 /// doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct PriceKoInfo {
     /// High-risk (indicative).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub indicative_high_risk: Option<bool>,
-    /// Indicative leverage. `Decimal` per CONTRACTS.md.
+    /// Indicative leverage. `Decimal`.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "opt_arb_prec"
     )]
     pub indicative_leverage: Option<Decimal>,
-    /// Risk buffer. `Decimal` per CONTRACTS.md.
+    /// Risk buffer. `Decimal`.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -156,8 +147,7 @@ pub struct PriceKoInfo {
 }
 
 /// Current market trading status.
-///
-/// Schema: `_definitions/StatusInfo.md`. All fields are optional per the
+/// All fields are optional per the
 /// doc.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct StatusInfo {
@@ -174,8 +164,7 @@ pub struct StatusInfo {
 
 /// One row inside a [`MainSearchResponse`] — represents a single
 /// instrument, news article, page, or Shareville profile match.
-///
-/// Schema: `_definitions/MainSearchResponseRow.md`. The doc table marks
+/// The doc table marks
 /// every field except `display_name` as optional.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct MainSearchResponseRow {
@@ -295,7 +284,7 @@ pub struct MainSearchResponseRow {
     /// Bid-ask spread.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub spread: Option<PriceWithDecimals>,
-    /// Bid-ask spread in percent. `Decimal` per CONTRACTS.md.
+    /// Bid-ask spread in percent. `Decimal`.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -311,7 +300,7 @@ pub struct MainSearchResponseRow {
     /// Trading order book ID used in NNX.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub trading_order_book_id: Option<String>,
-    /// Daily turnover. `Decimal` per CONTRACTS.md.
+    /// Daily turnover. `Decimal`.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -336,8 +325,7 @@ pub struct MainSearchResponseRow {
 }
 
 /// One result group inside a search response.
-///
-/// Schema: `_definitions/MainSearchResponse.md`. `GET /main_search`
+/// `GET /main_search`
 /// returns `Vec<MainSearchResponse>` — one entry per result group (e.g.
 /// equities, news, pages).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]

@@ -1,11 +1,9 @@
 //! Tests for the `markets` resource group.
-//!
 //! Layer 1 — Fixture roundtrip: every fixture parses under
 //! `deny_unknown_fields` and re-serializes to canonical JSON.
-//!
 //! Layer 2 — Wiremock integration: every operation is exercised against a
 //! mock server using the corresponding fixture as the response body, plus
-//! one error-mapping test per CONTRACTS.md.
+//! one error-mapping test.
 
 use nordnet_api::{Client, Error};
 use nordnet_model::ids::MarketId;
@@ -45,7 +43,7 @@ fn list_markets_fixture_roundtrip() {
     assert_eq!(parsed[2].market_id, MarketId(80));
     assert_eq!(parsed[2].country, None);
 
-    // Canonical roundtrip per CONTRACTS.md test rule 1.
+    // Canonical roundtrip test rule 1.
     let canonical: serde_json::Value =
         serde_json::from_str(raw).expect("fixture must parse as Value");
     let re = serde_json::to_string(&parsed).expect("must re-serialize");
@@ -65,7 +63,7 @@ fn get_market_fixture_roundtrip() {
     assert_eq!(parsed[0].name, "Stockholmsbörsen");
     assert_eq!(parsed[0].country.as_deref(), Some("SE"));
 
-    // Canonical roundtrip per CONTRACTS.md test rule 1.
+    // Canonical roundtrip test rule 1.
     let canonical: serde_json::Value =
         serde_json::from_str(raw).expect("fixture must parse as Value");
     let re = serde_json::to_string(&parsed).expect("must re-serialize");

@@ -1,7 +1,5 @@
 //! Resource methods for the `accounts` API group.
-//!
 //! # Operations
-//!
 //! | Method | Op | Path |
 //! |--------|----|------|
 //! | GET | `list_accounts` | `/accounts` |
@@ -12,27 +10,22 @@
 //! | GET | `list_account_trades` | `/accounts/{accid}/trades` |
 //!
 //! ## Naming
-//!
 //! One op is renamed from its docs name so it can co-exist on [`Client`]
 //! alongside same-named ops in other groups (Rust resolves all resource
 //! methods onto a single `Client` impl):
-//!
 //! - `list_trades` -> `list_account_trades` — to coexist with
 //!   [`Client::list_tradable_trades`] (`tradables` group) and
 //!   [`Client::list_instrument_trades`] (`instruments` group). Mirrors the
 //!   precedent set in `resources/instruments.rs`.
-//!
-//! Phase 3X may pick a uniform naming scheme.
+//!   Phase 3X may pick a uniform naming scheme.
 //!
 //! ## Path note
-//!
 //! `get_returns_today` uses path `/accounts/{accid}/returns/transactions/today`
 //! per the Phase 1 docs extract. The Phase 3 task brief proposed
 //! `/accounts/{accid}/returns/today` but the saved HTML schema is the
-//! authoritative source per CONTRACTS.md priority #1.
+//! authoritative source priority #1.
 //!
 //! ## 204 No Content
-//!
 //! All ops except `get_account_info` document a 204 response. The base
 //! [`Client::get`] surfaces an empty body as a [`Error::Decode`]; each
 //! Vec-returning method here maps that case to an empty `Vec` (mirroring
@@ -95,7 +88,6 @@ pub struct ListAccountTradesQuery {
 }
 
 /// Build the encoded query string for the given pairs.
-///
 /// Uses `reqwest::Url::query_pairs_mut` so all percent-encoding follows
 /// the standard URL form rules. The placeholder host is never sent
 /// anywhere — only the encoded query suffix is extracted.

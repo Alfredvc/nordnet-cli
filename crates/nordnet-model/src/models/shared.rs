@@ -1,15 +1,8 @@
 //! Types reused across resource groups.
 //!
-//! Phase 0 locked the original surface (`ErrorResponse`, `Currency`, `Money`,
-//! `Amount`, `Timestamp`). Phase 3X (cross-endpoint type consistency) is
-//! the only later phase permitted to extend this module — it adds shared
-//! types that were independently re-derived by ≥3 group implementers, plus
-//! a small set of (de)serialization adapters that the same number of groups
-//! had copy-pasted locally.
-//!
-//! Phase 3X additions are tagged with `// added by Phase 3X` in the source
-//! and listed in PROCESS.md §"Locked decisions" item 11. After Phase 3X
-//! this module is locked again — Phase 4 (CLI) treats it read-only.
+//! Surface: `ErrorResponse`, `Currency`, `Money`, `Amount`,
+//! `AmountWithCurrency`, `Timestamp`, plus the `opt_arb_prec` and
+//! `date_iso8601` serde adapters used by multiple groups.
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -46,15 +39,10 @@ impl From<&str> for Currency {
 
 /// A monetary amount in a specific currency, using the field name `amount`.
 ///
-/// `amount` is `rust_decimal::Decimal` — never `f64` (per CONTRACTS.md).
-/// This type is provided for endpoints that nest a `{amount, currency}`
-/// object literally; for the much more common Nordnet `{value, currency}`
-/// shape (the documented `_definitions/Amount.md` schema), see
+/// `amount` is `rust_decimal::Decimal` — never `f64`. This type is provided
+/// for endpoints that nest a `{amount, currency}` object literally; for the
+/// much more common Nordnet `{value, currency}` shape, see
 /// [`AmountWithCurrency`].
-///
-/// Currently unused — kept in case a `{amount, currency}` shape surfaces
-/// in a later doc revision; removing it would require coordinated edits to
-/// the foundation lock.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Money {
     #[serde(with = "rust_decimal::serde::arbitrary_precision")]
@@ -72,13 +60,7 @@ pub struct Amount(#[serde(with = "rust_decimal::serde::arbitrary_precision")] pu
 
 /// A monetary amount with attached currency, encoded as
 /// `{currency: <Currency>, value: <Decimal>}` per the documented
-/// `_definitions/Amount.md` schema.
-///
-/// Added by Phase 3X. Two groups (`accounts`, `orders`) had independently
-/// derived structurally-equivalent local types from the same `Amount`
-/// schema (`accounts::Amount` and `orders::OrderAmount`), differing only
-/// in whether `currency` was typed as `String` or [`Currency`]. They now
-/// both use this shared type, normalizing on the [`Currency`] newtype.
+/// Nordnet `Amount` schema.
 ///
 /// Cannot derive [`Eq`] because `value` is a `Decimal` carried under the
 /// `arbitrary_precision` adapter (`PartialEq` only).
@@ -86,7 +68,7 @@ pub struct Amount(#[serde(with = "rust_decimal::serde::arbitrary_precision")] pu
 pub struct AmountWithCurrency {
     /// The amount currency.
     pub currency: Currency,
-    /// The amount value. `Decimal` per CONTRACTS.md (never `f64`).
+    /// The amount value. `Decimal` (never `f64`).
     #[serde(with = "rust_decimal::serde::arbitrary_precision")]
     pub value: Decimal,
 }
@@ -104,15 +86,9 @@ pub type Timestamp = OffsetDateTime;
 /// encoding (matches the `arbitrary_precision` adapter applied to
 /// non-optional `Decimal` fields).
 ///
-/// Added by Phase 3X. Four groups (`accounts`, `instruments`,
-/// `instrument_search`, `main_search`) had each carried a byte-identical
-/// private copy of this module. They now reference it from here via
-/// `#[serde(with = "crate::models::shared::opt_arb_prec")]`.
-///
 /// `rust_decimal` exposes `arbitrary_precision_option` directly; this
-/// wrapper exists so the import surface in the field attributes stays
-/// uniform with the non-optional case (`with = "..."`) and so changes to
-/// the underlying implementation can be made in one place.
+/// wrapper exists so the import surface in field attributes stays uniform
+/// with the non-optional case (`with = "..."`).
 pub mod opt_arb_prec {
     use rust_decimal::Decimal;
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -138,10 +114,6 @@ pub mod opt_arb_prec {
 
 /// Serde adapter for `time::Date` that round-trips the documented
 /// `string(date)` wire form (`"YYYY-MM-DD"`).
-///
-/// Added by Phase 3X. Three groups (`accounts`, `instruments`, `tradables`)
-/// each carried `string`-typed date fields with TODO notes pointing here;
-/// they now use `time::Date` via this adapter.
 ///
 /// Use at the field level with `#[serde(with = "crate::models::shared::date_iso8601")]`
 /// (or `date_iso8601::option` for `Option<Date>`).

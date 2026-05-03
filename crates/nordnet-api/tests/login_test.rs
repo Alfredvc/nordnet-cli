@@ -1,14 +1,11 @@
 //! Tests for the `login` resource group.
-//!
 //! Layer 1 — Fixture roundtrip: every request/response fixture parses
 //! under `deny_unknown_fields` and re-serialises to canonical JSON.
-//!
 //! Layer 2 — Wiremock integration: every operation is exercised against
 //! a mock server using the corresponding fixture as response body. Where
 //! the operation has a request body, the mock asserts byte-for-byte that
 //! the client emitted the request fixture. Plus one error-mapping test
-//! per operation (where applicable) per CONTRACTS.md.
-//!
+//! per operation (where applicable).
 //! Layer 3 — Bridge to [`nordnet_model::auth::Session`]: confirms the
 //! canonical [`ApiKeyLoginResponse`] can be converted into a
 //! [`Session`] whose `basic_auth_header()` matches the expected base64.

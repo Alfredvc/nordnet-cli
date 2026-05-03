@@ -2,6 +2,7 @@
 //! examples (`nordnet/next-api-v2-examples`, Sep 2025) and the
 //! "Getting Started" guide at <https://www.nordnet.se/externalapi/docs/getting_started>.
 //!
+//!
 //! ## Wire flow
 //!
 //! 1. `POST /api/2/login/start`
@@ -18,6 +19,7 @@
 //!      from this module.
 //! 4. Subsequent requests authenticate by setting
 //!    `Authorization: Basic base64(session_key:session_key)`.
+//!
 //!
 //! ## Signature scheme
 //!

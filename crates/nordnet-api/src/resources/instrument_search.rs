@@ -11,6 +11,7 @@
 //! | GET | `search_unlimitedturbolist` | `/instrument_search/query/unlimitedturbolist` |
 //! | GET | `search_optionlist_pairs` | `/instrument_search/query/optionlist/pairs` |
 //!
+//!
 //! ## Query parameters
 //!
 //! Each search op carries a sizeable set of optional query parameters. The
@@ -19,6 +20,7 @@
 //! forwarded via [`reqwest::Url::query_pairs_mut`] for proper percent
 //! encoding. Required params (only `search_optionlist_pairs` has any) are
 //! plain method arguments.
+//!
 //!
 //! ## 204 No Content
 //!

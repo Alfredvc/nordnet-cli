@@ -93,6 +93,8 @@ pub mod opt_arb_prec {
     use rust_decimal::Decimal;
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+    /// Serialize an `Option<Decimal>` as a bare JSON number (or `null`).
+    /// Invoked indirectly via `#[serde(with = "opt_arb_prec")]`.
     pub fn serialize<S>(value: &Option<Decimal>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -102,6 +104,8 @@ pub mod opt_arb_prec {
         value.as_ref().map(Wrapped).serialize(serializer)
     }
 
+    /// Deserialize a bare JSON number (or `null`) into `Option<Decimal>`.
+    /// Invoked indirectly via `#[serde(with = "opt_arb_prec")]`.
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Decimal>, D::Error>
     where
         D: Deserializer<'de>,
@@ -125,6 +129,8 @@ pub mod date_iso8601 {
     const FORMAT: &[time::format_description::FormatItem<'static>] =
         format_description!("[year]-[month]-[day]");
 
+    /// Serialize a [`Date`] as a `YYYY-MM-DD` string.
+    /// Invoked indirectly via `#[serde(with = "date_iso8601")]`.
     pub fn serialize<S>(value: &Date, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -135,6 +141,8 @@ pub mod date_iso8601 {
             .serialize(serializer)
     }
 
+    /// Deserialize a `YYYY-MM-DD` string into a [`Date`].
+    /// Invoked indirectly via `#[serde(with = "date_iso8601")]`.
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Date, D::Error>
     where
         D: Deserializer<'de>,
@@ -149,6 +157,8 @@ pub mod date_iso8601 {
         use serde::{Deserialize, Deserializer, Serialize, Serializer};
         use time::Date;
 
+        /// Serialize an `Option<Date>` as a `YYYY-MM-DD` string or JSON `null`.
+        /// Invoked indirectly via `#[serde(with = "date_iso8601::option")]`.
         pub fn serialize<S>(value: &Option<Date>, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: Serializer,
@@ -162,6 +172,8 @@ pub mod date_iso8601 {
             }
         }
 
+        /// Deserialize a `YYYY-MM-DD` string or `null` into `Option<Date>`.
+        /// Invoked indirectly via `#[serde(with = "date_iso8601::option")]`.
         pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Date>, D::Error>
         where
             D: Deserializer<'de>,
@@ -184,6 +196,8 @@ pub mod date_iso8601 {
         use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serializer};
         use time::Date;
 
+        /// Serialize a `Vec<Date>` as a JSON array of `YYYY-MM-DD` strings.
+        /// Invoked indirectly via `#[serde(with = "date_iso8601::vec")]`.
         pub fn serialize<S>(value: &[Date], serializer: S) -> Result<S::Ok, S::Error>
         where
             S: Serializer,
@@ -196,6 +210,8 @@ pub mod date_iso8601 {
             seq.end()
         }
 
+        /// Deserialize a JSON array of `YYYY-MM-DD` strings into `Vec<Date>`.
+        /// Invoked indirectly via `#[serde(with = "date_iso8601::vec")]`.
         pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Date>, D::Error>
         where
             D: Deserializer<'de>,

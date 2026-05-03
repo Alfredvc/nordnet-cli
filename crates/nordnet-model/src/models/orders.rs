@@ -10,7 +10,7 @@
 //! - **Wire format for `place_order` / `modify_order`: `application/x-www-form-urlencoded`.**
 //!   The parameter tables describe every body parameter as Swagger 2.0
 //!   `FormData`. The resource layer sends these via
-//!   [`crate::Client::post_form`] / [`crate::Client::put_form`]. The
+//!   `nordnet_api::Client::post_form` / `nordnet_api::Client::put_form`. The
 //!   request structs intentionally do NOT carry the
 //!   `rust_decimal::serde::arbitrary_precision_option` adapter on
 //!   `Decimal` fields (it serializes via a `serde_json` magic struct that
@@ -378,7 +378,7 @@ pub enum OrderActivationCondition {
 /// Request body for `place_order` (`POST /accounts/{accid}/orders`).
 ///
 /// Wire format: `application/x-www-form-urlencoded` (Swagger 2.0
-/// `FormData`). Sent via [`crate::Client::post_form`]. The struct is flat
+/// `FormData`). Sent via `nordnet_api::Client::post_form`. The struct is flat
 /// (no nested objects, sequences, or maps) so `serde_urlencoded` accepts
 /// it. **Field declaration order determines wire field order** — keep
 /// alphabetical (matches the doc parameter table) to keep the wire body
@@ -457,7 +457,7 @@ pub struct PlaceOrderRequest {
 /// is changed but enforces no compile-time invariant.
 ///
 /// Wire format: `application/x-www-form-urlencoded` (Swagger 2.0
-/// `FormData`). Sent via [`crate::Client::put_form`]. See the
+/// `FormData`). Sent via `nordnet_api::Client::put_form`. See the
 /// [`PlaceOrderRequest`] note for why `Decimal` fields omit the
 /// `arbitrary_precision_option` adapter.
 ///

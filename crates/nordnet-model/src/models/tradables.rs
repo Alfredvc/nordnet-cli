@@ -35,9 +35,9 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 /// Tradable lookup key: `[market_id]:[identifier]` (e.g. `11:101` for ERIC B).
-/// Constructed by callers and passed to the resource methods on
-/// [`crate::Client`]. The wire form (`{market_id}:{identifier}`) is produced
-/// by the [`std::fmt::Display`] impl.
+/// Constructed by callers and passed to the tradable-keyed resource methods
+/// on `nordnet_api::Client`. The wire form (`{market_id}:{identifier}`) is
+/// produced by the [`std::fmt::Display`] impl.
 /// Multi-key lookups (the API accepts a comma-separated list in the path)
 /// are not modelled here — Phase 4 is expected to add a small helper for
 /// that shape so the typed API stays single-key by default.
@@ -59,6 +59,8 @@ impl TradableKey {
     }
 }
 
+/// Renders the wire form `{market_id}:{identifier}` (e.g. `11:101`) used
+/// by the tradable-keyed path segments of the REST API.
 impl std::fmt::Display for TradableKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}:{}", self.market_id.0, self.identifier.0)
@@ -118,7 +120,7 @@ pub struct TradableInfo {
 }
 
 /// One public trade executed on the marketplace.
-/// ///
+///
 /// Cannot derive [`Eq`] because `price` is a `Decimal` (which only
 /// implements `PartialEq` after the `arbitrary_precision` adapter).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]

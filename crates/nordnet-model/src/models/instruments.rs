@@ -45,11 +45,11 @@
 //!   the wire encoding is identical because the field name matches the
 //!   schema verbatim.
 //! - The resource ops `list_trades` (this group) and `get_suitability` (this
-//!   group) are renamed in [`crate::Client`] to `list_instrument_trades` and
-//!   `get_instrument_suitability` respectively, to avoid Rust-impl name
+//!   group) are renamed in `nordnet_api::Client` to `list_instrument_trades`
+//!   and `get_instrument_suitability` respectively, to avoid Rust-impl name
 //!   collisions with the same-named ops in the `accounts` and `tradables`
 //!   groups (all three groups install methods on the same `Client`). See
-//!   `crate::resources::instruments` for the documented rationale.
+//!   `nordnet_api::resources::instruments` for the documented rationale.
 
 use crate::ids::{InstrumentId, IssuerId, MarketId, TickSizeId, TradableId};
 use crate::models::shared::{date_iso8601, opt_arb_prec};
@@ -73,7 +73,7 @@ pub struct KeyInformationDocuments {
 }
 
 /// One underlying instrument reference.
-/// ///
+///
 /// The schema lists BOTH `instrument_id` (required) and the misspelled
 /// legacy `instrumment_id` (optional). The Rust field for the misspelled
 /// variant preserves the typo to keep the legacy nature self-documenting
@@ -121,7 +121,7 @@ pub struct Tradable {
 }
 
 /// An instrument as returned by `GET /instruments/...` responses.
-/// Schema: the schema (28 fields). Several fields use
+/// Schema: `Instrument.md` (28 fields). Several fields use
 /// `number(double)` and are typed as [`Decimal`] — as a result this type
 /// cannot derive [`Eq`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -271,7 +271,7 @@ pub struct InstrumentEligibility {
 }
 
 /// One public trade executed on the marketplace.
-/// ///
+///
 /// Cannot derive [`Eq`] because `price` is a `Decimal`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct PublicTrade {
@@ -300,7 +300,7 @@ pub struct PublicTrade {
 }
 
 /// Public trades for a single instrument.
-/// ///
+///
 /// Cannot derive [`Eq`] because the nested [`PublicTrade::price`] is a
 /// `Decimal`. `instrument_id` is documented as `integer(int32)` — see
 /// module doc note.
@@ -329,8 +329,7 @@ pub struct LeverageFilter {
     /// List of valid currencies.
     pub currencies: Vec<String>,
     /// List of valid expiry dates (`YYYY-MM-DD` per Nordnet date
-    /// convention); typed as [`time::Date`] via `date_iso8601::vec`
-    ///.
+    /// convention); typed as [`time::Date`] via `date_iso8601::vec`.
     #[serde(with = "date_iso8601::vec")]
     pub expiration_dates: Vec<time::Date>,
     /// List of valid instrument group types.

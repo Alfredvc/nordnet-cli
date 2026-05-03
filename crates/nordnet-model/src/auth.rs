@@ -50,12 +50,15 @@ use crate::error::AuthError;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ApiKeyStartLoginRequest {
+    /// The caller's API key, as issued by Nordnet.
     pub api_key: String,
 }
 
 /// Response body from `POST /login/start`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ChallengeResponse {
+    /// Short opaque string (UUID v4 in the live examples) the caller must
+    /// sign with their Ed25519 private key. Valid for ~30s.
     pub challenge: String,
 }
 
@@ -63,8 +66,12 @@ pub struct ChallengeResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ApiKeyVerifyLoginRequest {
+    /// The caller's API key (same value as in [`ApiKeyStartLoginRequest`]).
     pub api_key: String,
+    /// Service identifier — `"NEXTAPI"` for the External API v2.
     pub service: String,
+    /// Base64-encoded 64-byte Ed25519 signature over the raw UTF-8 bytes
+    /// of [`ChallengeResponse::challenge`]. See [`sign_challenge`].
     pub signature: String,
 }
 
@@ -72,7 +79,10 @@ pub struct ApiKeyVerifyLoginRequest {
 /// the `Authorization` header.
 #[derive(Debug, Clone)]
 pub struct Session {
+    /// Opaque session token returned by `POST /login/verify`. Used as both
+    /// the username and password in the HTTP Basic auth header.
     pub session_key: String,
+    /// Total session lifetime in seconds (not the remaining time).
     pub expires_in: i64,
 }
 
@@ -90,9 +100,12 @@ impl Session {
 /// base64-encoded 64-byte signature — the format expected by
 /// [`ApiKeyVerifyLoginRequest::signature`].
 ///
-/// Infallible in practice — Ed25519 signing cannot fail given a valid
-/// [`SigningKey`] — but the return type stays `Result` so callers can
-/// chain it with [`parse_private_key_openssh`] without two error mappings.
+/// # Errors
+///
+/// In practice this never returns `Err` — Ed25519 signing cannot fail
+/// given a valid [`SigningKey`]. The return type stays `Result` so
+/// callers can chain it with [`parse_private_key_openssh`] without two
+/// error mappings.
 pub fn sign_challenge(private_key: &SigningKey, challenge: &str) -> Result<String, AuthError> {
     let signature = private_key.sign(challenge.as_bytes());
     Ok(B64.encode(signature.to_bytes()))
@@ -102,9 +115,16 @@ pub fn sign_challenge(private_key: &SigningKey, challenge: &str) -> Result<Strin
 ///
 /// Accepts the on-disk format produced by `ssh-keygen -t ed25519`
 /// (`-----BEGIN OPENSSH PRIVATE KEY-----`). Encrypted keys are
-/// rejected with [`AuthError::EncryptedKey`] — decrypt them out-of-band
-/// first. Non-Ed25519 algorithms (RSA, ECDSA, DSA) are rejected with
-/// [`AuthError::WrongAlgorithm`].
+/// rejected — decrypt them out-of-band first. Non-Ed25519 algorithms
+/// (RSA, ECDSA, DSA) are rejected.
+///
+/// # Errors
+///
+/// - [`AuthError::InvalidKey`] — input is not a valid OpenSSH private key.
+/// - [`AuthError::EncryptedKey`] — key is passphrase-protected.
+/// - [`AuthError::WrongAlgorithm`] — key algorithm is not Ed25519.
+/// - [`AuthError::KeyDataMismatch`] — algorithm tag and key data disagree
+///   (should not occur with keys produced by `ssh-keygen`).
 pub fn parse_private_key_openssh(text: &str) -> Result<SigningKey, AuthError> {
     let pk = PrivateKey::from_openssh(text)
         .map_err(|e| AuthError::InvalidKey(format!("invalid OpenSSH private key: {e}")))?;

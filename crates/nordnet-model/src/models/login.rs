@@ -66,6 +66,9 @@ impl ApiKeyLoginResponse {
     }
 }
 
+/// `&ApiKeyLoginResponse` → [`Session`]. Equivalent to
+/// [`ApiKeyLoginResponse::to_session`]; provided so callers can use the
+/// standard `Into`/`From` conversion idiom.
 impl From<&ApiKeyLoginResponse> for Session {
     fn from(response: &ApiKeyLoginResponse) -> Self {
         response.to_session()

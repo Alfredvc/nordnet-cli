@@ -252,6 +252,162 @@ async fn mid_frame_disconnect_returns_err() {
 }
 
 #[tokio::test]
+async fn empty_lines_are_skipped() {
+    // Stray blank lines on the wire (NDJSON convention — peer keepalive
+    // pulses, chunked-encoding boundaries, peer-flush artifacts) MUST
+    // be skipped silently. A previous version of recv() would route
+    // these to FeedError::Decode("EOF while parsing a value") and
+    // mark the connection terminal.
+    let (listener, feed) = loopback().await;
+    let server = tokio::spawn(async move {
+        let (mut sock, _) = listener.accept().await.unwrap();
+        // Two blank lines, then a real heartbeat, then another blank.
+        sock.write_all(b"\n\n").await.unwrap();
+        sock.write_all(br#"{"type":"heartbeat","data":{}}"#)
+            .await
+            .unwrap();
+        sock.write_all(b"\n\n").await.unwrap();
+    });
+    let mut client = PublicFeedClient::connect(&feed).await.unwrap();
+    let event = tokio::time::timeout(Duration::from_secs(2), client.recv())
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    assert!(matches!(event, PublicEvent::Heartbeat));
+    server.await.unwrap();
+}
+
+#[tokio::test]
+async fn malformed_err_frame_routes_to_unknown() {
+    // Server sends an `err` frame whose `data` is a string (not the
+    // documented `{msg, cmd}` object). Per I5 the client must NOT
+    // silently produce ServerError { msg: "", cmd: Null } — instead
+    // route to PublicEvent::Unknown so callers get a clear signal.
+    let (listener, feed) = loopback().await;
+    let server = tokio::spawn(async move {
+        let (mut sock, _) = listener.accept().await.unwrap();
+        sock.write_all(br#"{"type":"err","data":"oops"}"#)
+            .await
+            .unwrap();
+        sock.write_all(b"\n").await.unwrap();
+    });
+    let mut client = PublicFeedClient::connect(&feed).await.unwrap();
+    let event = tokio::time::timeout(Duration::from_secs(2), client.recv())
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    match event {
+        PublicEvent::Unknown { kind, data } => {
+            assert_eq!(kind, "err");
+            assert_eq!(data, serde_json::Value::String("oops".into()));
+        }
+        other => panic!("expected Unknown {{ kind: \"err\" }}, got {:?}", other),
+    }
+    server.await.unwrap();
+}
+
+#[tokio::test]
+async fn frame_too_large_surfaces_via_recv() {
+    // End-to-end coverage of the codec → FeedError::FrameTooLarge path
+    // through `PublicFeedClient::recv` (the codec test exercises
+    // LinesCodec directly but not the client wrapper).
+    use nordnet_feed::codec::MAX_FRAME_BYTES;
+    let (listener, feed) = loopback().await;
+    let server = tokio::spawn(async move {
+        let (mut sock, _) = listener.accept().await.unwrap();
+        // Write MAX+1 bytes with no terminator — the codec rejects.
+        let payload = vec![b'a'; MAX_FRAME_BYTES + 1];
+        let _ = sock.write_all(&payload).await;
+        // Keep the socket open so the codec error fires before EOF.
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    });
+    let mut client = PublicFeedClient::connect(&feed).await.unwrap();
+    let result = tokio::time::timeout(Duration::from_secs(2), client.recv())
+        .await
+        .unwrap();
+    assert!(
+        matches!(result, Err(FeedError::FrameTooLarge)),
+        "expected FrameTooLarge, got {:?}",
+        result
+    );
+    server.await.unwrap();
+}
+
+#[tokio::test]
+async fn calls_after_terminal_error_return_closed() {
+    // After a recv() error, the client must reject every subsequent
+    // call with FeedError::Closed (terminal-state enforcement, I3).
+    let (listener, feed) = loopback().await;
+    let server = tokio::spawn(async move {
+        let (mut sock, _) = listener.accept().await.unwrap();
+        // Write malformed JSON to force a Decode error.
+        sock.write_all(b"not-valid-json\n").await.unwrap();
+        // Keep socket open briefly.
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    });
+    let mut client = PublicFeedClient::connect(&feed).await.unwrap();
+    let first = tokio::time::timeout(Duration::from_secs(2), client.recv())
+        .await
+        .unwrap();
+    assert!(
+        matches!(first, Err(FeedError::Decode { .. })),
+        "expected Decode error, got {:?}",
+        first
+    );
+    // Now every subsequent call returns Closed.
+    let second = client.recv().await;
+    assert!(
+        matches!(second, Err(FeedError::Closed)),
+        "expected Closed after first error, got {:?}",
+        second
+    );
+    let send = client.login("k").await;
+    assert!(
+        matches!(send, Err(FeedError::Closed)),
+        "expected Closed for send-after-terminal, got {:?}",
+        send
+    );
+    let sub = client
+        .subscribe(SubscribeArgs::MarketData {
+            kind: MarketDataKind::Price,
+            market: 11,
+            identifier: "101".into(),
+        })
+        .await;
+    assert!(
+        matches!(sub, Err(FeedError::Closed)),
+        "expected Closed for subscribe-after-terminal, got {:?}",
+        sub
+    );
+    server.await.unwrap();
+}
+
+#[tokio::test]
+async fn calls_after_clean_eof_return_closed() {
+    // Ok(None) is also terminal — every subsequent call must be Closed.
+    let (listener, feed) = loopback().await;
+    let server = tokio::spawn(async move {
+        let (sock, _) = listener.accept().await.unwrap();
+        drop(sock);
+    });
+    let mut client = PublicFeedClient::connect(&feed).await.unwrap();
+    let first = tokio::time::timeout(Duration::from_secs(2), client.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(first.is_none(), "expected Ok(None), got {:?}", first);
+    let second = client.recv().await;
+    assert!(
+        matches!(second, Err(FeedError::Closed)),
+        "expected Closed after EOF, got {:?}",
+        second
+    );
+    server.await.unwrap();
+}
+
+#[tokio::test]
 async fn private_feed_order_event_round_trip() {
     let (listener, feed) = loopback().await;
     let server = tokio::spawn(async move {

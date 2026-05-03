@@ -15,8 +15,9 @@ pub mod private;
 pub mod private_client;
 pub mod public;
 pub mod public_client;
+mod transport;
 
-pub use command::{LoginCommand, MarketDataKind, SubscribeArgs};
+pub use command::{MarketDataKind, SubscribeArgs};
 pub use error::{FeedError, ServerError};
 pub use event::{PrivateEvent, PublicEvent};
 pub use private_client::PrivateFeedClient;

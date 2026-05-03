@@ -1265,13 +1265,11 @@ version = "0.1.0"
 dependencies = [
  "futures-util",
  "nordnet-model",
- "pretty_assertions",
  "rust_decimal",
  "rustls",
  "serde",
  "serde_json",
  "thiserror",
- "time",
  "tokio",
  "tokio-rustls",
  "tokio-util",

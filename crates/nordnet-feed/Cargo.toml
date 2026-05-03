@@ -16,9 +16,7 @@ futures-util = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 rust_decimal = { workspace = true }
-time = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
-pretty_assertions = { workspace = true }
 rust_decimal = { workspace = true }

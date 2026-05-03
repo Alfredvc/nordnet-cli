@@ -63,15 +63,38 @@ fn trade_deserializes() {
         "broker_buying": "ABC", "trade_id": "T-1"
     }"#;
     let t: Trade = serde_json::from_str(json).unwrap();
-    assert_eq!(t.price, Decimal::from_str("132.55").unwrap());
+    assert_eq!(t.price, Some(Decimal::from_str("132.55").unwrap()));
+    assert_eq!(t.volume, Some(Decimal::from_str("100.0").unwrap()));
     assert_eq!(t.broker_buying, Some("ABC".into()));
+}
+
+#[test]
+fn trade_delta_tick_omits_price_volume() {
+    // Per Nordnet's tick framing, only `i`/`m` are guaranteed on every
+    // frame — delta frames may omit price/volume/timestamp.
+    let json = r#"{"i":"101","m":11}"#;
+    let t: Trade = serde_json::from_str(json).unwrap();
+    assert_eq!(t.i, "101");
+    assert_eq!(t.price, None);
+    assert_eq!(t.volume, None);
+    assert_eq!(t.trade_timestamp, None);
 }
 
 #[test]
 fn trading_status_deserializes() {
     let json = r#"{"i":"101","m":11,"tick_timestamp":1,"status":"R"}"#;
     let s: TradingStatus = serde_json::from_str(json).unwrap();
-    assert_eq!(s.status, "R");
+    assert_eq!(s.status, Some("R".into()));
+    assert_eq!(s.tick_timestamp, Some(1));
+}
+
+#[test]
+fn trading_status_delta_tick_omits_status() {
+    // Delta frames may carry only the keys plus changed fields.
+    let json = r#"{"i":"101","m":11}"#;
+    let s: TradingStatus = serde_json::from_str(json).unwrap();
+    assert_eq!(s.status, None);
+    assert_eq!(s.tick_timestamp, None);
 }
 
 #[test]
@@ -84,10 +107,30 @@ fn indicator_m_is_string() {
 
 #[test]
 fn news_kind_renamed_from_type() {
+    // Wire field is "type"; Rust field is `kind`. Verify both directions:
+    // (1) "type" deserializes into `kind`, (2) re-serialization writes
+    // back as "type", (3) a JSON with literal "kind" does NOT populate
+    // the Rust field (forward-compat: would land in unknown-field-ignored).
     let json =
         r#"{"news_id":1,"lang":"sv","timestamp":1,"source_id":2,"headline":"H","type":"alert"}"#;
     let n: News = serde_json::from_str(json).unwrap();
-    assert_eq!(n.kind, "alert");
+    assert_eq!(n.kind, Some("alert".into()));
+    let back = serde_json::to_string(&n).unwrap();
+    assert!(
+        back.contains(r#""type":"alert""#),
+        "round-trip must serialize as `type`, got: {back}"
+    );
+    assert!(
+        !back.contains(r#""kind":"#),
+        "must not emit `kind` field on the wire, got: {back}"
+    );
+
+    // JSON with literal "kind" — the rename ensures `kind` is NOT
+    // populated (it's an unknown field, ignored).
+    let json_with_kind =
+        r#"{"news_id":1,"lang":"sv","timestamp":1,"source_id":2,"headline":"H","kind":"alert"}"#;
+    let n: News = serde_json::from_str(json_with_kind).unwrap();
+    assert_eq!(n.kind, None, "literal `kind` must NOT bind to `kind` field");
 }
 
 // === Private event payloads ===

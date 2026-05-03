@@ -21,6 +21,10 @@ use serde::{Serialize, Serializer};
 /// Per the official Python `next-api-v2-examples` repo, `service` is
 /// always the literal string `"NEXTAPI"` (the public docs page omits
 /// the field but the reference impl always sends it).
+///
+/// Not in the prelude (`crate::*`) — consumers call
+/// `client.login(session_key)` rather than constructing this directly.
+/// Kept `pub` for the wire-byte integration tests in `tests/`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoginCommand<'a> {
     pub session_key: &'a str,
@@ -31,7 +35,7 @@ struct LoginArgs<'a> {
     session_key: &'a str,
 }
 
-impl<'a> Serialize for LoginArgs<'a> {
+impl Serialize for LoginArgs<'_> {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         let mut m = s.serialize_map(Some(2))?;
         m.serialize_entry("session_key", self.session_key)?;
@@ -40,7 +44,7 @@ impl<'a> Serialize for LoginArgs<'a> {
     }
 }
 
-impl<'a> Serialize for LoginCommand<'a> {
+impl Serialize for LoginCommand<'_> {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         let mut top = s.serialize_map(Some(2))?;
         top.serialize_entry("cmd", "login")?;
@@ -58,7 +62,10 @@ impl<'a> Serialize for LoginCommand<'a> {
 /// `Indicator` with an integer market or `News` with `m`/`i` fields.
 ///
 /// Derives `Clone + Eq + Hash` so callers can stash a value and hand it
-/// back to `unsubscribe()` later (round-trip symmetry).
+/// back to `unsubscribe()` later (round-trip symmetry). The `Hash`
+/// derive depends on `rust_decimal::Decimal: Hash` indirectly (no
+/// `Decimal` field today, but if one is ever added the derive must keep
+/// compiling — load-bearing for stash-and-reuse).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SubscribeArgs {
     /// Standard market data: price, depth, trade, trading_status.
@@ -144,7 +151,7 @@ struct SubscribeFrame<'a> {
     args: &'a SubscribeArgs,
 }
 
-impl<'a> Serialize for SubscribeFrame<'a> {
+impl Serialize for SubscribeFrame<'_> {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         let mut top = s.serialize_map(Some(2))?;
         top.serialize_entry("cmd", self.cmd_name)?;

@@ -67,11 +67,16 @@ pub struct Price {
 ///
 /// Note: `bid_orders{n}` / `ask_orders{n}` are `i64` order COUNTS, not
 /// volumes (despite the naming pattern matching `bid_volume{n}`).
+///
+/// Per Nordnet's tick framing rules, only `i` and `m` (the keys) are
+/// guaranteed on every frame; `tick_timestamp` and any depth field may
+/// be absent on delta frames.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
 pub struct Depth {
     pub i: String,
     pub m: i64,
-    pub tick_timestamp: i64,
+    #[serde(default)]
+    pub tick_timestamp: Option<i64>,
     // Level 1
     #[serde(default)]
     pub bid1: Option<Decimal>,
@@ -141,13 +146,19 @@ pub struct Depth {
 
 /// Public market trade tick. NOT to be confused with the private
 /// feed's own-account trade payload (see private.rs).
+///
+/// Only `i` / `m` are guaranteed on every frame; the rest may be absent
+/// on delta frames per Nordnet's tick framing rules.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Trade {
     pub i: String,
     pub m: i64,
-    pub trade_timestamp: i64,
-    pub price: Decimal,
-    pub volume: Decimal,
+    #[serde(default)]
+    pub trade_timestamp: Option<i64>,
+    #[serde(default)]
+    pub price: Option<Decimal>,
+    #[serde(default)]
+    pub volume: Option<Decimal>,
     #[serde(default)]
     pub broker_buying: Option<String>,
     #[serde(default)]
@@ -160,12 +171,17 @@ pub struct Trade {
 
 /// Trading status tick. `status` is a single character per Nordnet
 /// (C/R/D/X/U) but typed as String to admit future codes.
+///
+/// Only `i` / `m` are guaranteed on every frame; the rest may be absent
+/// on delta frames per Nordnet's tick framing rules.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct TradingStatus {
     pub i: String,
     pub m: i64,
-    pub tick_timestamp: i64,
-    pub status: String,
+    #[serde(default)]
+    pub tick_timestamp: Option<i64>,
+    #[serde(default)]
+    pub status: Option<String>,
     #[serde(default)]
     pub source_status: Option<String>,
     #[serde(default)]
@@ -176,11 +192,15 @@ pub struct TradingStatus {
 
 /// Indicator tick (e.g. OMXS30). NOTE: `m` is `String` here, NOT `i64`
 /// like other event types — per Nordnet's docs.
+///
+/// Only `i` / `m` are guaranteed on every frame; the rest may be absent
+/// on delta frames per Nordnet's tick framing rules.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Indicator {
     pub i: String,
     pub m: String,
-    pub tick_timestamp: i64,
+    #[serde(default)]
+    pub tick_timestamp: Option<i64>,
     #[serde(default)]
     pub last: Option<Decimal>,
     #[serde(default)]
@@ -197,15 +217,22 @@ pub struct Indicator {
 ///
 /// Wire field `type` → Rust field `kind` (avoids the keyword
 /// collision and disambiguates from the envelope `type`).
+///
+/// Only `news_id` is guaranteed on every frame; the rest may be absent
+/// on delta-style update frames per Nordnet's tick framing rules.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct News {
     pub news_id: i64,
-    pub lang: String,
-    pub timestamp: i64,
-    pub source_id: i64,
-    pub headline: String,
-    #[serde(rename = "type")]
-    pub kind: String,
+    #[serde(default)]
+    pub lang: Option<String>,
+    #[serde(default)]
+    pub timestamp: Option<i64>,
+    #[serde(default)]
+    pub source_id: Option<i64>,
+    #[serde(default)]
+    pub headline: Option<String>,
+    #[serde(default, rename = "type")]
+    pub kind: Option<String>,
     #[serde(default)]
     pub instruments: Option<Vec<i64>>,
 }

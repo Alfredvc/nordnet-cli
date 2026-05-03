@@ -1,17 +1,9 @@
 //! Public market-data feed client.
 
-use futures_util::{SinkExt, StreamExt};
-use std::sync::Arc;
-use tokio::net::TcpStream;
-use tokio_rustls::client::TlsStream;
-use tokio_rustls::TlsConnector;
-use tokio_util::codec::Framed;
-use tokio_util::codec::LinesCodec;
-
-use crate::codec::new_lines_codec;
 use crate::command::{encode_login_frame, encode_subscribe_frame, LoginCommand, SubscribeArgs};
-use crate::error::FeedError;
+use crate::error::{redact_line, FeedError};
 use crate::event::{Envelope, PublicEvent};
+use crate::transport::{self, Inner};
 
 use nordnet_model::models::login::Feed;
 
@@ -20,13 +12,18 @@ use nordnet_model::models::login::Feed;
 /// All methods take `&mut self` — to run send and receive concurrently,
 /// split externally with `tokio::io::split` plus `Arc<Mutex<...>>`. Not
 /// provided by the crate.
+///
+/// # Termination semantics
+///
+/// Any error returned by [`Self::recv`], [`Self::send`-style methods],
+/// or a clean EOF from `recv()` puts the client in a terminal state.
+/// The transport is dropped and every subsequent call returns
+/// [`FeedError::Closed`]. Callers must construct a new client (and
+/// re-login) to continue.
 pub struct PublicFeedClient {
-    inner: Inner,
-}
-
-enum Inner {
-    Plain(Framed<TcpStream, LinesCodec>),
-    Tls(Box<Framed<TlsStream<TcpStream>, LinesCodec>>),
+    /// `Some(inner)` while live. Set to `None` on first error / EOF —
+    /// every subsequent call returns [`FeedError::Closed`].
+    inner: Option<Inner>,
 }
 
 impl PublicFeedClient {
@@ -35,29 +32,9 @@ impl PublicFeedClient {
     /// the structured wire field instead of the Python reference impl's
     /// `port == 443` heuristic).
     pub async fn connect(feed: &Feed) -> Result<Self, FeedError> {
-        let addr = format!("{}:{}", feed.hostname, feed.port);
-        let tcp = TcpStream::connect(&addr).await?;
-        let inner = if feed.encrypted {
-            let mut roots = rustls::RootCertStore::empty();
-            roots.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-            let cfg = rustls::ClientConfig::builder()
-                .with_root_certificates(roots)
-                .with_no_client_auth();
-            let connector = TlsConnector::from(Arc::new(cfg));
-            let server_name = feed.hostname.clone().try_into().map_err(
-                |e: rustls::pki_types::InvalidDnsNameError| {
-                    FeedError::Io(std::io::Error::new(
-                        std::io::ErrorKind::InvalidInput,
-                        e.to_string(),
-                    ))
-                },
-            )?;
-            let tls = connector.connect(server_name, tcp).await?;
-            Inner::Tls(Box::new(Framed::new(tls, new_lines_codec())))
-        } else {
-            Inner::Plain(Framed::new(tcp, new_lines_codec()))
-        };
-        Ok(Self { inner })
+        Ok(Self {
+            inner: Some(transport::connect(feed).await?),
+        })
     }
 
     /// Fire-and-forget login (Decision §4). Writes the login frame and
@@ -97,54 +74,71 @@ impl PublicFeedClient {
     /// via abrupt RST mid-frame. Returns `Err(FeedError::Decode { .. })`
     /// if the peer sent a clean FIN with a partial frame buffered (the
     /// half-frame is delivered as a line and fails JSON parsing — the
-    /// partial line is attached for diagnostics). All three states are
-    /// terminal; the connection is unusable after.
+    /// truncated line is attached for diagnostics).
+    ///
+    /// All error / EOF outcomes are terminal: the transport is dropped
+    /// and every subsequent call returns [`FeedError::Closed`]. Stray
+    /// blank lines on the wire (NDJSON keepalive convention) are
+    /// skipped silently rather than producing a `Decode` error.
     pub async fn recv(&mut self) -> Result<Option<PublicEvent>, FeedError> {
-        let line = match &mut self.inner {
-            Inner::Plain(f) => f.next().await,
-            Inner::Tls(f) => f.next().await,
-        };
-        let line = match line {
+        let line = match self.recv_line().await? {
             None => return Ok(None),
-            Some(Err(e)) => return Err(map_lines_err(e)),
-            Some(Ok(s)) => s,
+            Some(s) => s,
         };
-        let env: Envelope = serde_json::from_str(&line).map_err(|source| FeedError::Decode {
-            source,
-            line: line.clone(),
-        })?;
-        let event =
-            PublicEvent::from_envelope(env).map_err(|source| FeedError::Decode { source, line })?;
-        Ok(Some(event))
+        let env: Envelope = match serde_json::from_str(&line) {
+            Ok(e) => e,
+            Err(source) => {
+                self.inner = None;
+                return Err(FeedError::Decode {
+                    source,
+                    line: redact_line(line),
+                });
+            }
+        };
+        match PublicEvent::from_envelope(env) {
+            Ok(e) => Ok(Some(e)),
+            Err(source) => {
+                self.inner = None;
+                Err(FeedError::Decode {
+                    source,
+                    line: redact_line(line),
+                })
+            }
+        }
+    }
+
+    /// Read the next non-empty line from the wire. Empty lines (stray
+    /// `\n\n` keepalives, peer-flush artifacts) are skipped per NDJSON
+    /// convention. Sets `self.inner = None` on EOF or transport error.
+    async fn recv_line(&mut self) -> Result<Option<String>, FeedError> {
+        if self.inner.is_none() {
+            return Err(FeedError::Closed);
+        }
+        loop {
+            let inner = self.inner.as_mut().expect("checked Some above");
+            match inner.next_line().await {
+                None => {
+                    self.inner = None;
+                    return Ok(None);
+                }
+                Some(Err(e)) => {
+                    self.inner = None;
+                    return Err(transport::map_lines_err(e));
+                }
+                Some(Ok(s)) if s.is_empty() => continue,
+                Some(Ok(s)) => return Ok(Some(s)),
+            }
+        }
     }
 
     async fn send_line(&mut self, line: String) -> Result<(), FeedError> {
-        match &mut self.inner {
-            Inner::Plain(f) => f.send(line).await.map_err(map_lines_err),
-            Inner::Tls(f) => f.send(line).await.map_err(map_lines_err),
-        }
-    }
-}
-
-/// Map `LinesCodec` errors into our error taxonomy.
-///
-/// `LinesCodec::Io` is plain I/O. `LinesCodec::MaxLineLengthExceeded`
-/// is the 1 MiB cap (we don't expose a counter — log the error if you
-/// need byte counts).
-pub(crate) fn map_lines_err(e: tokio_util::codec::LinesCodecError) -> FeedError {
-    use tokio_util::codec::LinesCodecError;
-    match e {
-        LinesCodecError::Io(io) => {
-            // EOF mid-frame surfaces as UnexpectedEof. Spec wants this
-            // mapped to Closed.
-            if io.kind() == std::io::ErrorKind::UnexpectedEof {
-                FeedError::Closed
-            } else {
-                FeedError::Io(io)
+        let inner = self.inner.as_mut().ok_or(FeedError::Closed)?;
+        match inner.send_line(line).await {
+            Ok(()) => Ok(()),
+            Err(e) => {
+                self.inner = None;
+                Err(transport::map_lines_err(e))
             }
         }
-        LinesCodecError::MaxLineLengthExceeded => FeedError::FrameTooLarge {
-            bytes: crate::codec::MAX_FRAME_BYTES + 1,
-        },
     }
 }

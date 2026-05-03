@@ -4,8 +4,6 @@
 //! but the `data` payload schema differs per feed kind (public's `trade`
 //! is a market trade, private's `trade` is an own-account fill). To keep
 //! deserialization unambiguous, each feed has its own event enum.
-//!
-//! Phase 2.3 Agent C owns PublicEvent. Agent D appends PrivateEvent.
 
 use serde::Deserialize;
 use serde_json::Value;
@@ -28,7 +26,8 @@ pub enum PublicEvent {
     TradingStatus(public::TradingStatus),
     Indicator(public::Indicator),
     News(public::News),
-    /// Unknown wire `type`. Forward-compat: future event kinds land
+    /// Unknown wire `type`. Forward-compat: future event kinds — and
+    /// malformed `err` frames missing the required `msg` field — land
     /// here without erroring out.
     Unknown {
         kind: String,
@@ -45,16 +44,21 @@ pub(crate) struct Envelope {
     pub data: Value,
 }
 
-/// Extract a [`ServerError`] from a raw `serde_json::Value`.
+/// Try to extract a [`ServerError`] from a raw `serde_json::Value`.
 ///
-/// [`ServerError`] does not implement `Deserialize` (it is an event
-/// payload type surfaced via event variants, not a serde wire type).
-/// This shared helper avoids duplicating the manual extraction in both
-/// [`PublicEvent::from_envelope`] and [`PrivateEvent::from_envelope`].
-pub(crate) fn parse_server_error(data: Value) -> ServerError {
-    let msg = data["msg"].as_str().unwrap_or("").to_string();
-    let cmd = data["cmd"].clone();
-    ServerError { msg, cmd }
+/// Requires `data` to be an object with a string `msg` field. On
+/// anything else, returns the original `data` back so the caller can
+/// route to `Unknown { kind: "err", data }` — preserves diagnostic
+/// signal instead of silently producing `ServerError { msg: "", cmd: Null }`.
+pub(crate) fn parse_server_error(data: Value) -> Result<ServerError, Value> {
+    let Some(obj) = data.as_object() else {
+        return Err(data);
+    };
+    let Some(msg) = obj.get("msg").and_then(|v| v.as_str()).map(str::to_string) else {
+        return Err(data);
+    };
+    let cmd = obj.get("cmd").cloned().unwrap_or(Value::Null);
+    Ok(ServerError { msg, cmd })
 }
 
 impl PublicEvent {
@@ -64,7 +68,13 @@ impl PublicEvent {
     pub(crate) fn from_envelope(env: Envelope) -> Result<Self, serde_json::Error> {
         Ok(match env.kind.as_str() {
             "heartbeat" => PublicEvent::Heartbeat,
-            "err" => PublicEvent::Error(parse_server_error(env.data)),
+            "err" => match parse_server_error(env.data) {
+                Ok(se) => PublicEvent::Error(se),
+                Err(data) => PublicEvent::Unknown {
+                    kind: env.kind,
+                    data,
+                },
+            },
             "price" => PublicEvent::Price(serde_json::from_value(env.data)?),
             "depth" => PublicEvent::Depth(serde_json::from_value(env.data)?),
             "trade" => PublicEvent::Trade(serde_json::from_value(env.data)?),
@@ -101,7 +111,8 @@ pub enum PrivateEvent {
     /// suffix is the in-API signal that this is the only payload
     /// without a typed struct.
     TradeRaw(Value),
-    /// Unknown wire `type`. Forward-compat: future event kinds land
+    /// Unknown wire `type`. Forward-compat: future event kinds — and
+    /// malformed `err` frames missing the required `msg` field — land
     /// here without erroring out.
     Unknown { kind: String, data: Value },
 }
@@ -115,7 +126,13 @@ impl PrivateEvent {
     pub(crate) fn from_envelope(env: Envelope) -> Result<Self, serde_json::Error> {
         Ok(match env.kind.as_str() {
             "heartbeat" => PrivateEvent::Heartbeat,
-            "err" => PrivateEvent::Error(parse_server_error(env.data)),
+            "err" => match parse_server_error(env.data) {
+                Ok(se) => PrivateEvent::Error(se),
+                Err(data) => PrivateEvent::Unknown {
+                    kind: env.kind,
+                    data,
+                },
+            },
             "order" => PrivateEvent::Order(Box::new(serde_json::from_value(env.data)?)),
             "trade" => PrivateEvent::TradeRaw(env.data),
             _ => PrivateEvent::Unknown {

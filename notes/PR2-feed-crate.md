@@ -57,3 +57,52 @@ dep entry. That is exactly what was implemented. The workspace tokio dep is unch
 - `cargo metadata --format-version 1 | grep nordnet-feed` — confirmed membership
 - `cargo fmt --check` — green
 - `cargo clippy --workspace --all-targets -- -D warnings` — green
+
+---
+
+## Phase 2.1 — Codec + command
+
+**Date:** 2026-05-02
+
+### Files implemented
+
+- `crates/nordnet-feed/src/error.rs` — `FeedError` enum (Tls, Io, Decode, Encode,
+  FrameTooLarge, Closed) via thiserror. `ServerError` struct (msg, cmd) without
+  std::error::Error — surfaced as an event payload, not a Rust error.
+- `crates/nordnet-feed/src/codec.rs` — `MAX_FRAME_BYTES = 1 << 20` (1 MiB constant)
+  and `new_lines_codec()` constructor returning `LinesCodec::new_with_max_length(MAX_FRAME_BYTES)`.
+- `crates/nordnet-feed/src/command.rs` — `LoginCommand<'a>`, `SubscribeArgs`,
+  `MarketDataKind`, `encode_subscribe_frame`, `encode_login_frame`. All serialization
+  uses `SerializeMap` directly (not `serde_json::Map` or `json!` macro) to guarantee
+  insertion-order field emission.
+- `crates/nordnet-feed/src/lib.rs` — added `pub use` re-exports for `LoginCommand`,
+  `MarketDataKind`, `SubscribeArgs`, `FeedError`, `ServerError`.
+
+### Key discovery: serde_json field ordering
+
+`serde_json` without the `preserve_order` feature uses `BTreeMap` internally for
+both the `json!` macro and `serde_json::Map`, sorting keys alphabetically. This means:
+- `serde_json::json!({"cmd": ..., "args": ...})` would emit `{"args":{...},"cmd":"..."}` 
+  (args before cmd alphabetically).
+- `serde_json::Map::insert("session_key", ...).insert("service", ...)` would emit 
+  `service` before `session_key` alphabetically.
+
+**Fix:** All serialization uses `SerializeMap::serialize_entry` directly, which writes
+fields in the order called and never passes through an intermediate map. Helper
+structs (`LoginArgs`, `SubscribeFrame`) wrap the sub-objects to keep the Serialize
+impls composable.
+
+### Wire-byte verification
+
+Added inline `#[cfg(test)]` tests in `command.rs` asserting exact JSON output for
+all 6 required variants (login, MarketData price, Indicator, News/no-delay,
+News/delay=false, News/delay=true) plus unsubscribe symmetry and the cmd-before-args
+regression guard. All 8 tests pass.
+
+### Gate results
+
+- `cargo build --workspace` — green
+- `cargo fmt --check` — green
+- `cargo clippy --workspace --all-targets -- -D warnings` — green
+- `cargo test --workspace` — 255 tests pass (247 pre-existing + 8 new wire-byte
+  inline tests in command.rs)

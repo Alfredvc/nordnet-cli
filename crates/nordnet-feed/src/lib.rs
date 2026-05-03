@@ -16,4 +16,5 @@ pub mod private_client;
 pub mod public;
 pub mod public_client;
 
-// Re-exports filled in by later phases as the types land.
+pub use command::{LoginCommand, MarketDataKind, SubscribeArgs};
+pub use error::{FeedError, ServerError};

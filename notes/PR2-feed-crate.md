@@ -491,3 +491,72 @@ End-to-end loopback TCP tests (PublicFeedClient + PrivateFeedClient):
 - `cargo fmt --check` — green
 - `cargo clippy --workspace --all-targets -- -D warnings` — green
 - `cargo test --package nordnet-feed --test client_test` — 8/8 pass
+
+---
+
+## Phase 2.5 — Workspace integration
+
+**Date:** 2026-05-02
+
+### gen-mods result
+
+**No-op.** `cargo run -p xtask -- gen-mods` ran cleanly with zero file writes.
+This is the expected outcome: `nordnet-feed/src/lib.rs` is hand-written with
+explicit `pub mod` declarations, and `xtask::MOD_DIRS` only manages
+`crates/nordnet-api/src/{models,resources}`, `crates/nordnet-cli/src/cmd`, and
+`crates/nordnet-model/src/models` — none of which apply to the feed crate
+(it has no `models/` subdirectory pattern).
+
+### Cleanup pass findings
+
+- **`pub use` block:** All 9 re-exports in `lib.rs` (`LoginCommand`,
+  `MarketDataKind`, `SubscribeArgs`, `FeedError`, `ServerError`,
+  `PrivateEvent`, `PublicEvent`, `PrivateFeedClient`, `PublicFeedClient`)
+  are part of the documented public API surface. Tests reach into module
+  paths (e.g. `nordnet_feed::command::*`) but downstream consumers will
+  use the top-level re-exports. Left as-is.
+- **`recv()` doc comments:** Both `PublicFeedClient::recv` and
+  `PrivateFeedClient::recv` already describe the three terminal states
+  accurately — `Ok(None)` on clean EOF between frames,
+  `Err(FeedError::Closed)` on abrupt RST mid-frame, and
+  `Err(FeedError::Decode { .. })` on clean FIN with partial data. The
+  spec gap surfaced by phase 2.4 (LinesCodec delivering partial buffers
+  on clean FIN) is reflected in the rustdoc. No changes needed.
+- **Notes file:** All 8 prior phase sections present (2.0, 2.1, 2.2 A+B,
+  2.3 C+D, 2.4 A+B+C). This Phase 2.5 section closes the file.
+
+### Final test count
+
+**291 total** across the workspace. Breakdown:
+- Pre-PR2 baseline: 247 tests
+- Phase 2.1 (inline `command.rs`): +8 = 255
+- Phase 2.4 Agent A (codec_test + command_test): +15 = 270
+- Phase 2.4 Agent B (event_test): +13 = 283
+- Phase 2.4 Agent C (client_test): +8 = 291
+
+Matches the spec's expected 291.
+
+### Static gates (final, workspace-wide)
+
+- `cargo fmt --check` — green
+- `cargo clippy --workspace --all-targets -- -D warnings` — green
+- `cargo test --workspace` — 291/291 pass
+
+### Deviations from spec
+
+**None.** Phase 2.5 closed exactly as the process doc described.
+
+### Suggested final commit message
+
+```
+chore(feed): regenerate mod files + finalize crate
+
+Closes PR2 (nordnet-feed crate split).
+
+- gen-mods is a no-op for nordnet-feed (hand-written lib.rs, no
+  models/ subdirectory pattern).
+- All workspace static gates green: fmt, clippy, test.
+- Test count: 291 total (247 baseline + 44 new feed-crate tests
+  across phases 2.1 and 2.4).
+- See notes/PR2-feed-crate.md for the full per-phase breakdown.
+```

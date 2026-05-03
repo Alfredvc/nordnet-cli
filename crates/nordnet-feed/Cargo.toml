@@ -20,4 +20,5 @@ time = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
-# (filled in during phase 2.4 — leave empty for now)
+pretty_assertions = { workspace = true }
+rust_decimal = { workspace = true }

@@ -132,7 +132,7 @@ The `service` field is required per the official Python examples (the public doc
 
 **Login is fire-and-forget.** `login()` writes the frame and returns immediately, matching the official Python example which sends login + subscribe back-to-back without waiting for a reply. The protocol does not define a "login OK" response; the docs only state "If the login is correct the feed will start sending as soon as there is data to send." On failure, the server sends an `err` frame and/or closes the connection — both paths surface through the normal `recv()` loop:
 - `err` → `Event::Error(ServerError)` (caller handles)
-- close → next `recv()` returns `Ok(None)` (clean EOF) or `Err(FeedError::Closed)` (mid-frame)
+- close → next `recv()` returns `Ok(None)` (clean EOF between frames) or, if the close happened mid-frame, `Err(FeedError::Decode { .. })` on a clean FIN with partial data (the OS surfaces the half-frame as a line; serde_json then errors), or `Err(FeedError::Closed)` on an abrupt RST. The implementation cannot distinguish "server intended to send more" from "server crashed" — both produce errors with the partial line attached.
 
 This removes the timing-dependent "wait up to 5s for the first heartbeat" heuristic entirely. There is no `FeedError::LoginRejected` variant.
 
@@ -438,11 +438,13 @@ pub enum FeedError {
     Decode { source: serde_json::Error, line: String },
     Encode(serde_json::Error),
     FrameTooLarge { bytes: usize },   // codec hit max line length (1 MiB)
-    Closed,                            // peer hung up mid-frame
+    Closed,                            // peer hung up via abrupt RST mid-frame
 }
 ```
 
 No `LoginRejected` (login is fire-and-forget; rejections arrive as `Event::Error`). No `UnexpectedFrame` (forward-compat policy puts unknown frames in `Event::Unknown`).
+
+**Mid-frame disconnect taxonomy.** `Closed` only fires on an abrupt RST that surfaces as `io::ErrorKind::UnexpectedEof`. A clean TCP FIN with buffered partial data delivers the half-frame as a line, which then fails JSON parsing and surfaces as `Decode { source, line }`. Both states are unrecoverable; both leave the partial line available for diagnostics. Callers that only care about "stream is over" should treat `Closed`, `Decode`, and `Ok(None)` uniformly as terminal.
 
 No retry, no reconnect, no backoff — those are caller concerns. The crate surfaces failures verbatim.
 

@@ -74,8 +74,12 @@ impl PrivateFeedClient {
         }
     }
 
-    /// Receive the next event. `Ok(None)` on clean EOF;
-    /// `Err(FeedError::Closed)` on mid-frame disconnect.
+    /// Receive the next event.
+    ///
+    /// `Ok(None)` on clean EOF between frames. `Err(FeedError::Closed)`
+    /// on abrupt RST mid-frame. `Err(FeedError::Decode { .. })` on a
+    /// clean FIN with partial data (the half-frame is delivered as a
+    /// line and fails JSON parsing). All terminal.
     pub async fn recv(&mut self) -> Result<Option<PrivateEvent>, FeedError> {
         let line = match &mut self.inner {
             Inner::Plain(f) => f.next().await,

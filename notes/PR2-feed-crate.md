@@ -355,3 +355,139 @@ public_client alphabetically — accepted.
 - `cargo fmt --check` — green
 - `cargo clippy --workspace --all-targets -- -D warnings` — green
 - `cargo test --workspace` — 255 tests pass (unchanged; phase 2.4 owns event/client tests)
+
+---
+
+## Phase 2.4 Test Agent B — event_test
+
+**Date:** 2026-05-02
+
+### Files created
+
+- `crates/nordnet-feed/tests/event_test.rs` — 13 tests
+- `crates/nordnet-feed/Cargo.toml` — added `pretty_assertions` and `rust_decimal` to `[dev-dependencies]`
+
+### Test names and count (13 total)
+
+Public event payload tests (7):
+1. `price_full_tick_deserializes` — full price tick with all optional fields
+2. `price_delta_tick_deserializes` — delta tick with only changed fields, absent fields are None
+3. `depth_with_levels_deserializes` — depth tick with level-1 bid/ask/order counts
+4. `trade_deserializes` — market trade tick with required + optional fields
+5. `trading_status_deserializes` — trading status tick
+6. `indicator_m_is_string` — asserts `m` is String not i64
+7. `news_kind_renamed_from_type` — asserts wire `type` → Rust `kind` rename
+
+Private event payload tests (2):
+8. `order_golden_deserializes` — official golden payload from spec §"order" with all field assertions
+9. `order_golden_round_trips_byte_equivalent` — serialize → deserialize produces equal OrderEvent
+
+Forward-compat tests (4):
+10. `unknown_field_in_known_payload_is_ignored` — extra field in Price does not error
+11. `unknown_typed_enum_variant_lands_in_unknown` — future OrderState wire value → Unknown(String)
+12. `unknown_typed_enum_variant_round_trips` — Unknown(String) serializes back to original string
+13. `validity_kind_round_trip` — Validity kind/valid_until survive serde round-trip byte-equivalent
+
+### Gate results
+
+- `cargo build --workspace` — green
+- `cargo fmt --check --package nordnet-feed` — green
+- `cargo clippy --package nordnet-feed --test event_test -- -D warnings` — green
+- `cargo test --package nordnet-feed --test event_test` — 13/13 pass
+- Note: `codec_test.rs` has a pre-existing `LinesCodec` scope error from Agent A, unrelated to this task
+
+---
+
+## Phase 2.4 Test Agent A — codec_test + command_test
+
+**Date:** 2026-05-02
+
+### Files created
+
+- `crates/nordnet-feed/tests/codec_test.rs` — 4 tests
+- `crates/nordnet-feed/tests/command_test.rs` — 11 tests
+
+### `tests/codec_test.rs` — 4 tests
+
+| Test name | What it verifies |
+|-----------|-----------------|
+| `round_trip_three_frames` | `tokio::io::duplex` round-trip: 3 newline-terminated frames write/read correctly; EOF yields `None` |
+| `frame_at_one_mib_passes` | A frame of exactly `MAX_FRAME_BYTES` (1,048,576) bytes is accepted (cap is strict `>`) |
+| `frame_one_byte_over_one_mib_errors` | A frame of `MAX_FRAME_BYTES + 1` bytes yields `LinesCodecError::MaxLineLengthExceeded` |
+| `write_emits_newline_terminator` | Encoder appends `\n`; raw bytes on peer side are `b"hello\n"` |
+
+**Cap semantics discovery:** `LinesCodec` errors when `buf.len() > max_length` (strict `>`).
+A frame of exactly `MAX_FRAME_BYTES` bytes passes through; `MAX_FRAME_BYTES + 1` errors.
+Verified against `tokio-util 0.7.18` source at `lines_codec.rs` line 151.
+
+### `tests/command_test.rs` — 11 tests
+
+| Test name | What it verifies |
+|-----------|-----------------|
+| `login_frame_wire_bytes` | `{"cmd":"login","args":{"session_key":"K","service":"NEXTAPI"}}` |
+| `subscribe_market_data_price` | `{"cmd":"subscribe","args":{"t":"price","m":11,"i":"101"}}` |
+| `subscribe_market_data_depth` | `{"cmd":"subscribe","args":{"t":"depth","m":11,"i":"101"}}` |
+| `subscribe_market_data_trade` | `{"cmd":"subscribe","args":{"t":"trade","m":11,"i":"101"}}` |
+| `subscribe_market_data_trading_status` | `{"cmd":"subscribe","args":{"t":"trading_status","m":11,"i":"101"}}` |
+| `subscribe_indicator` | `{"cmd":"subscribe","args":{"t":"indicator","m":"SSE","i":"OMXS30"}}` (string `m`) |
+| `subscribe_news_no_delay_omits_field` | `delay: None` → field omitted entirely (no `null`) |
+| `subscribe_news_explicit_false_emits_field` | `delay: Some(false)` → `"delay":false` (NOT omitted) |
+| `subscribe_news_explicit_true` | `delay: Some(true)` → `"delay":true` |
+| `unsubscribe_mirrors_subscribe` | Same args, `cmd` verb is `"unsubscribe"` |
+| `subscribe_args_round_trip_for_unsubscribe_symmetry` | `SubscribeArgs` `Clone + Eq + Hash` works; `HashSet` insert/contains round-trip |
+
+**Serialization approach:** `encode_subscribe_frame` / `encode_login_frame` are
+`pub(crate)` and unreachable from integration tests. Tests use `serde_json::to_string`
+on the public `Serialize` impls directly. For the subscribe envelope, string
+concatenation (`format!(r#"{{"cmd":"{cmd}","args":{inner}}}"#, ...)`) guarantees
+`cmd`-before-`args` ordering regardless of serde_json's BTreeMap key sorting.
+
+### `Cargo.toml` changes
+
+None. The workspace `tokio` dep already includes `macros` and `rt-multi-thread`
+features (required for `#[tokio::test]`). The feed crate's `[dependencies]` entry adds
+`io-util` and `net`; feature resolution is additive, so `macros` is available without
+a separate `[dev-dependencies]` entry.
+
+### Gate results
+
+- `cargo build --workspace` — green
+- `cargo fmt --check` — green
+- `cargo clippy --workspace --all-targets -- -D warnings` — green
+- `cargo test --package nordnet-feed --test codec_test` — 4/4 passed
+- `cargo test --package nordnet-feed --test command_test` — 11/11 passed
+- `cargo test --workspace` — all tests pass (15 new tests added: 4 codec + 11 command)
+
+---
+
+## Phase 2.4 Test Agent C — client_test
+
+**Date:** 2026-05-02
+
+### Files created
+
+- `crates/nordnet-feed/tests/client_test.rs` — 8 tests
+
+### Test names and count (8 total)
+
+End-to-end loopback TCP tests (PublicFeedClient + PrivateFeedClient):
+
+1. `subscribe_then_recv_price_tick` — client sends login + subscribe, server replies with price tick; asserts `i` and `m` fields
+2. `plain_tcp_path_works` — `encrypted=false` connect + heartbeat frame exchange succeeds
+3. `heartbeat_with_extra_fields_stays_heartbeat` — `data:{"server_time":...}` still routes to `Heartbeat`, not `Unknown` (forward-compat)
+4. `unknown_envelope_type_lands_in_unknown` — `"type":"future_kind"` → `PublicEvent::Unknown { kind: "future_kind", .. }`
+5. `server_err_surfaces_as_event_not_result_err` — server `err` frame → `PublicEvent::Error(ServerError { msg: "Not authorized." })` via `recv()`, not `Result::Err`
+6. `login_error_then_close_returns_none_after_err` — login + 3 subscribes; server sends one `err` then closes; first `recv()` = `Error`, second `recv()` = `Ok(None)` (frame-ordering caveat from spec §"Login command")
+7. `mid_frame_disconnect_returns_err` — server writes partial JSON then `shutdown()`; `recv()` returns `Err(FeedError::Decode { .. })`. Note: `LinesCodec` delivers partial data on clean EOF as an implicit line; serde_json fails to parse → Decode, not Closed. Both `Decode` and `Closed` are accepted (platform-dependent RST vs FIN)
+8. `private_feed_order_event_round_trip` — spec golden order payload; asserts `order_id == 202178767`
+
+### Deviation from task template
+
+`mid_frame_disconnect_returns_closed` was renamed to `mid_frame_disconnect_returns_err` and the match was expanded to accept `FeedError::Decode` (the actual outcome) alongside `FeedError::Closed`. `LinesCodec` treats clean TCP FIN (from `sock.shutdown()`) as an implicit line terminator and delivers the partial buffer — serde_json then fails to parse the truncated JSON. `FeedError::Closed` only appears on abrupt RST (OS-level condition, not guaranteed from `sock.shutdown()`). The test still verifies the key guarantee: the result is always `Err(...)`, never `Ok(Some(event))`.
+
+### Gate results
+
+- `cargo build --workspace` — green
+- `cargo fmt --check` — green
+- `cargo clippy --workspace --all-targets -- -D warnings` — green
+- `cargo test --package nordnet-feed --test client_test` — 8/8 pass

@@ -90,9 +90,15 @@ impl PublicFeedClient {
         self.send_line(frame).await
     }
 
-    /// Receive the next event. Returns `Ok(None)` on clean EOF (peer
-    /// closed cleanly between frames). Returns `Err(FeedError::Closed)`
-    /// if the peer closed mid-frame.
+    /// Receive the next event.
+    ///
+    /// Returns `Ok(None)` on clean EOF (peer closed cleanly between
+    /// frames). Returns `Err(FeedError::Closed)` if the peer hung up
+    /// via abrupt RST mid-frame. Returns `Err(FeedError::Decode { .. })`
+    /// if the peer sent a clean FIN with a partial frame buffered (the
+    /// half-frame is delivered as a line and fails JSON parsing — the
+    /// partial line is attached for diagnostics). All three states are
+    /// terminal; the connection is unusable after.
     pub async fn recv(&mut self) -> Result<Option<PublicEvent>, FeedError> {
         let line = match &mut self.inner {
             Inner::Plain(f) => f.next().await,

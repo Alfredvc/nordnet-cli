@@ -373,7 +373,7 @@ Test files live under `crates/nordnet-feed/tests/`. Three test agents, parallel,
 - Subscribe → receive: mocked server (`tokio::io::duplex`) accepts a `subscribe` frame, replies with a `price` tick; `PublicFeedClient::recv` parses correctly.
 - Plain-TCP (`encrypted = false`) path: `tokio::net::TcpListener` bound to `127.0.0.1`, client connects, exchanges a frame.
 - Login error mid-subscribe sequence: client sends login + 3 subscribes, server replies with one `err` frame and closes; verify `err` arrives as `Event::Error` and the next `recv()` returns `Ok(None)`. Documents the frame-ordering caveat from spec §"Login command".
-- Mid-frame disconnect: server closes after writing `{"type":"price",` (no terminator) → next `recv()` returns `Err(FeedError::Closed)`.
+- Mid-frame disconnect: server closes after writing `{"type":"price",` (no terminator) → next `recv()` returns `Err(FeedError::Closed)` on RST or `Err(FeedError::Decode { .. })` on a clean FIN with partial data. Test relaxed to accept either since loopback shutdown is FIN, not RST.
 
 **TLS path is NOT live-tested.** TLS handshake against a real Nordnet host would violate the no-Nordnet-API rule. The `encrypted = true` branch is exercised only at the type level (`PublicFeedClient::connect` compiles for both branches; the TLS code path is covered by the upstream `tokio-rustls` test suite, not by this crate).
 

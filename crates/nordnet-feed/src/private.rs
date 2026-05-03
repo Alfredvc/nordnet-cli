@@ -11,6 +11,7 @@
 //! deserialize errors so Nordnet can add new states without breaking
 //! us.
 
+use nordnet_model::ids::{AccountId, MarketId, OrderId, TradableId};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
@@ -21,9 +22,9 @@ use serde::{Deserialize, Serialize};
 /// reference in `docs-source/nordnet-api-v2.html`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct OrderEvent {
-    pub order_id: i64,
-    pub accno: i64,
-    pub accid: i64,
+    pub order_id: OrderId,
+    pub accno: AccountId,
+    pub accid: AccountId,
     pub tradable: Tradable,
     pub side: Side,
     pub volume: Decimal,
@@ -34,16 +35,17 @@ pub struct OrderEvent {
     pub order_state: OrderState,
     pub action_state: ActionState,
     pub order_type: OrderType,
+    /// UNIX-millisecond epoch of the last server-side modification.
     pub modified: i64,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reference: Option<String>,
 }
 
 /// Tradable identifier nested inside [`OrderEvent`].
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Tradable {
-    pub market_id: i64,
-    pub identifier: String,
+    pub market_id: MarketId,
+    pub identifier: TradableId,
 }
 
 /// Price with currency nested inside [`OrderEvent`].

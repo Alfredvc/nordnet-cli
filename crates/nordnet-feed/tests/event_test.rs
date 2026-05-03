@@ -6,6 +6,7 @@ use nordnet_feed::private::{
     OrderEvent, OrderState, OrderType, Side, Validity, ValidityKind, VolumeCondition,
 };
 use nordnet_feed::public::{Depth, Indicator, News, Price, Trade, TradingStatus};
+use nordnet_model::ids::{AccountId, InstrumentId, MarketId, OrderId, TradableId};
 use rust_decimal::Decimal;
 use std::str::FromStr;
 
@@ -24,8 +25,8 @@ fn price_full_tick_deserializes() {
         "bid_volume": 100.0, "ask_volume": 200.0, "last_volume": 50.0
     }"#;
     let p: Price = serde_json::from_str(json).unwrap();
-    assert_eq!(p.i, "101");
-    assert_eq!(p.m, 11);
+    assert_eq!(p.identifier, TradableId::from("101"));
+    assert_eq!(p.market_id, MarketId(11));
     assert_eq!(p.bid, Some(Decimal::from_str("132.5").unwrap()));
     assert_eq!(p.last_volume, Some(Decimal::from_str("50.0").unwrap()));
 }
@@ -35,7 +36,7 @@ fn price_delta_tick_deserializes() {
     // Per spec §"Tick framing": deltas carry m+i + only changed fields.
     let json = r#"{"i": "101", "m": 11, "last": 132.55, "last_volume": 25.0}"#;
     let p: Price = serde_json::from_str(json).unwrap();
-    assert_eq!(p.i, "101");
+    assert_eq!(p.identifier, TradableId::from("101"));
     assert_eq!(p.last, Some(Decimal::from_str("132.55").unwrap()));
     assert_eq!(p.bid, None);
     assert_eq!(p.ask, None);
@@ -56,7 +57,7 @@ fn depth_with_levels_deserializes() {
 }
 
 #[test]
-fn trade_deserializes() {
+fn trade_full_deserializes() {
     let json = r#"{
         "i": "101", "m": 11, "trade_timestamp": 1612955053717,
         "price": 132.55, "volume": 100.0,
@@ -74,7 +75,7 @@ fn trade_delta_tick_omits_price_volume() {
     // frame — delta frames may omit price/volume/timestamp.
     let json = r#"{"i":"101","m":11}"#;
     let t: Trade = serde_json::from_str(json).unwrap();
-    assert_eq!(t.i, "101");
+    assert_eq!(t.identifier, TradableId::from("101"));
     assert_eq!(t.price, None);
     assert_eq!(t.volume, None);
     assert_eq!(t.trade_timestamp, None);
@@ -98,23 +99,43 @@ fn trading_status_delta_tick_omits_status() {
 }
 
 #[test]
-fn indicator_m_is_string() {
+fn indicator_uses_string_fields() {
     let json = r#"{"i":"OMXS30","m":"SSE","tick_timestamp":1,"last":2500.0}"#;
     let i: Indicator = serde_json::from_str(json).unwrap();
-    assert_eq!(i.m, "SSE"); // String, NOT i64
+    assert_eq!(i.identifier, "OMXS30");
+    assert_eq!(i.market, "SSE");
     assert_eq!(i.last, Some(Decimal::from_str("2500.0").unwrap()));
 }
 
 #[test]
-fn news_kind_renamed_from_type() {
+fn news_full_payload_deserializes() {
+    // News is push-once (NOT tick-framed) — every non-id field is required.
+    let json = r#"{
+        "news_id": 1,
+        "lang": "sv",
+        "timestamp": 1612955053717,
+        "source_id": 2,
+        "headline": "Headline",
+        "type": "alert",
+        "instruments": [101, 202]
+    }"#;
+    let n: News = serde_json::from_str(json).unwrap();
+    assert_eq!(n.news_id, 1);
+    assert_eq!(n.lang, "sv");
+    assert_eq!(n.headline, "Headline");
+    assert_eq!(n.kind, "alert");
+    assert_eq!(n.instruments, vec![InstrumentId(101), InstrumentId(202)]);
+}
+
+#[test]
+fn news_kind_renamed_from_type_round_trip() {
     // Wire field is "type"; Rust field is `kind`. Verify both directions:
     // (1) "type" deserializes into `kind`, (2) re-serialization writes
-    // back as "type", (3) a JSON with literal "kind" does NOT populate
-    // the Rust field (forward-compat: would land in unknown-field-ignored).
-    let json =
-        r#"{"news_id":1,"lang":"sv","timestamp":1,"source_id":2,"headline":"H","type":"alert"}"#;
+    // back as "type", (3) a JSON with literal "kind" instead of "type"
+    // fails to deserialize (forward-compat: literal `kind` is unknown).
+    let json = r#"{"news_id":1,"lang":"sv","timestamp":1,"source_id":2,"headline":"H","type":"alert","instruments":[]}"#;
     let n: News = serde_json::from_str(json).unwrap();
-    assert_eq!(n.kind, Some("alert".into()));
+    assert_eq!(n.kind, "alert");
     let back = serde_json::to_string(&n).unwrap();
     assert!(
         back.contains(r#""type":"alert""#),
@@ -124,13 +145,15 @@ fn news_kind_renamed_from_type() {
         !back.contains(r#""kind":"#),
         "must not emit `kind` field on the wire, got: {back}"
     );
+}
 
-    // JSON with literal "kind" — the rename ensures `kind` is NOT
-    // populated (it's an unknown field, ignored).
-    let json_with_kind =
-        r#"{"news_id":1,"lang":"sv","timestamp":1,"source_id":2,"headline":"H","kind":"alert"}"#;
-    let n: News = serde_json::from_str(json_with_kind).unwrap();
-    assert_eq!(n.kind, None, "literal `kind` must NOT bind to `kind` field");
+#[test]
+fn news_missing_required_field_errors() {
+    // News is push-once — required fields must be present. Verify the
+    // deserializer rejects (rather than producing a silent default).
+    let json = r#"{"news_id":1,"lang":"sv","timestamp":1,"source_id":2,"headline":"H","instruments":[]}"#;
+    let r: Result<News, _> = serde_json::from_str(json);
+    assert!(r.is_err(), "missing `type` must error on News, got {r:?}");
 }
 
 // === Private event payloads ===
@@ -140,7 +163,11 @@ fn order_golden_deserializes() {
     // Spec §"order" line 273 — required golden.
     let json = r#"{"volume":111.0,"price":{"value":132.55,"currency":"SEK"},"volume_condition":"NORMAL","order_id":202178767,"reference":"ABC132","tradable":{"market_id":11,"identifier":"101"},"validity":{"type":"DAY","valid_until":1613061300000},"accno":123123,"accid":1,"side":"BUY","modified":1612955053717,"activation_condition":{"type":"NONE"},"order_state":"LOCAL","action_state":"INS_PEND","order_type":"LIMIT"}"#;
     let o: OrderEvent = serde_json::from_str(json).unwrap();
-    assert_eq!(o.order_id, 202178767);
+    assert_eq!(o.order_id, OrderId(202178767));
+    assert_eq!(o.accno, AccountId(123123));
+    assert_eq!(o.accid, AccountId(1));
+    assert_eq!(o.tradable.market_id, MarketId(11));
+    assert_eq!(o.tradable.identifier, TradableId::from("101"));
     assert_eq!(o.volume, Decimal::from_str("111.0").unwrap());
     assert_eq!(o.side, Side::Known(KnownSide::Buy));
     assert_eq!(o.validity.kind, ValidityKind::Known(KnownValidityKind::Day));
@@ -162,8 +189,7 @@ fn order_golden_deserializes() {
 }
 
 #[test]
-fn order_golden_round_trips_byte_equivalent() {
-    // Re-serialize the golden — assert key fields survive round-trip.
+fn order_golden_round_trips() {
     let json = r#"{"volume":111.0,"price":{"value":132.55,"currency":"SEK"},"volume_condition":"NORMAL","order_id":202178767,"reference":"ABC132","tradable":{"market_id":11,"identifier":"101"},"validity":{"type":"DAY","valid_until":1613061300000},"accno":123123,"accid":1,"side":"BUY","modified":1612955053717,"activation_condition":{"type":"NONE"},"order_state":"LOCAL","action_state":"INS_PEND","order_type":"LIMIT"}"#;
     let o: OrderEvent = serde_json::from_str(json).unwrap();
     let again = serde_json::to_string(&o).unwrap();
@@ -202,7 +228,6 @@ fn unknown_typed_enum_variant_round_trips() {
 
 #[test]
 fn validity_kind_round_trip() {
-    // {"type":"DAY"} → Validity.kind = Known(Day) → reserialize → same bytes.
     let json = r#"{"type":"DAY","valid_until":1613061300000}"#;
     let v: Validity = serde_json::from_str(json).unwrap();
     assert_eq!(v.kind, ValidityKind::Known(KnownValidityKind::Day));
@@ -210,23 +235,3 @@ fn validity_kind_round_trip() {
     let again = serde_json::to_string(&v).unwrap();
     assert_eq!(again, json);
 }
-
-// === Heartbeat forward-compat ===
-//
-// Heartbeat decode happens in the envelope dispatcher (event.rs); these
-// tests verify that a heartbeat with extra fields in `data` doesn't
-// fall through to Unknown. Since from_envelope is pub(crate), we test
-// via the public PublicFeedClient::recv path in client_test.rs (Agent C).
-// So this section is intentionally empty here.
-
-// === Server error frame ===
-//
-// Tested end-to-end in client_test.rs (Agent C) where the duplex socket
-// can deliver the err frame through the codec.
-
-// === Unknown envelope type ===
-//
-// Tested end-to-end in client_test.rs (Agent C). Envelope and
-// from_envelope are pub(crate) and unreachable from integration tests,
-// so the dispatcher's unknown-type fallthrough must be exercised via
-// PublicFeedClient::recv.

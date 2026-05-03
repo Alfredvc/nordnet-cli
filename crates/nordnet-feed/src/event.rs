@@ -9,6 +9,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use crate::error::ServerError;
+use crate::private;
 use crate::public;
 
 /// Inbound event on the public market-data feed.
@@ -29,9 +30,19 @@ pub enum PublicEvent {
     /// Unknown wire `type`. Forward-compat: future event kinds — and
     /// malformed `err` frames missing the required `msg` field — land
     /// here without erroring out.
-    Unknown {
+    Unknown { kind: String, data: Value },
+    /// A known event `type` whose payload failed to deserialize into the
+    /// typed struct. Carries the raw payload plus the rendered serde
+    /// error so consumers can log and continue.
+    ///
+    /// This is a non-terminal soft-fail: the connection stays open and
+    /// the next [`crate::PublicFeedClient::recv`] call will return the
+    /// next frame. Compare with [`crate::FeedError::Decode`] which
+    /// signals a fundamentally broken envelope and is terminal.
+    DecodeFailed {
         kind: String,
         data: Value,
+        error: String,
     },
 }
 
@@ -61,12 +72,33 @@ pub(crate) fn parse_server_error(data: Value) -> Result<ServerError, Value> {
     Ok(ServerError { msg, cmd })
 }
 
+/// Deserialize a typed payload from a raw value, building a
+/// [`PublicEvent::DecodeFailed`] on failure rather than aborting the
+/// connection. The caller hands a constructor that wraps the typed
+/// payload in the matching event variant.
+fn decode_or_soft_fail<T, F>(kind: &str, data: Value, wrap: F) -> PublicEvent
+where
+    T: serde::de::DeserializeOwned,
+    F: FnOnce(T) -> PublicEvent,
+{
+    match serde_json::from_value::<T>(data.clone()) {
+        Ok(payload) => wrap(payload),
+        Err(e) => PublicEvent::DecodeFailed {
+            kind: kind.to_owned(),
+            data,
+            error: e.to_string(),
+        },
+    }
+}
+
 impl PublicEvent {
     /// Decode one wire-line into a typed event. Unknown `type` values
-    /// land in [`PublicEvent::Unknown`]; unknown fields inside known
-    /// payloads are silently ignored (forward compat).
-    pub(crate) fn from_envelope(env: Envelope) -> Result<Self, serde_json::Error> {
-        Ok(match env.kind.as_str() {
+    /// land in [`PublicEvent::Unknown`]; payload-shape mismatches inside
+    /// known types land in [`PublicEvent::DecodeFailed`] (non-terminal).
+    /// Unknown fields inside known payloads are silently ignored
+    /// (forward compat).
+    pub(crate) fn from_envelope(env: Envelope) -> Self {
+        match env.kind.as_str() {
             "heartbeat" => PublicEvent::Heartbeat,
             "err" => match parse_server_error(env.data) {
                 Ok(se) => PublicEvent::Error(se),
@@ -75,25 +107,25 @@ impl PublicEvent {
                     data,
                 },
             },
-            "price" => PublicEvent::Price(serde_json::from_value(env.data)?),
-            "depth" => PublicEvent::Depth(serde_json::from_value(env.data)?),
-            "trade" => PublicEvent::Trade(serde_json::from_value(env.data)?),
-            "trading_status" => PublicEvent::TradingStatus(serde_json::from_value(env.data)?),
-            "indicator" => PublicEvent::Indicator(serde_json::from_value(env.data)?),
-            "news" => PublicEvent::News(serde_json::from_value(env.data)?),
+            "price" => decode_or_soft_fail(&env.kind, env.data, PublicEvent::Price),
+            "depth" => decode_or_soft_fail(&env.kind, env.data, PublicEvent::Depth),
+            "trade" => decode_or_soft_fail(&env.kind, env.data, PublicEvent::Trade),
+            "trading_status" => {
+                decode_or_soft_fail(&env.kind, env.data, PublicEvent::TradingStatus)
+            }
+            "indicator" => decode_or_soft_fail(&env.kind, env.data, PublicEvent::Indicator),
+            "news" => decode_or_soft_fail(&env.kind, env.data, PublicEvent::News),
             _ => PublicEvent::Unknown {
                 kind: env.kind,
                 data: env.data,
             },
-        })
+        }
     }
 }
 
-use crate::private;
-
 /// Inbound event on the private account/order feed.
 ///
-/// The private feed is auto-pushed after [`PrivateFeedClient::login`] —
+/// The private feed is auto-pushed after [`crate::PrivateFeedClient::login`] —
 /// no subscription is required.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PrivateEvent {
@@ -115,6 +147,16 @@ pub enum PrivateEvent {
     /// malformed `err` frames missing the required `msg` field — land
     /// here without erroring out.
     Unknown { kind: String, data: Value },
+    /// A known event `type` whose payload failed to deserialize into the
+    /// typed struct. Carries the raw payload plus the rendered serde
+    /// error so consumers can log and continue.
+    ///
+    /// Non-terminal (mirrors [`PublicEvent::DecodeFailed`]).
+    DecodeFailed {
+        kind: String,
+        data: Value,
+        error: String,
+    },
 }
 
 impl PrivateEvent {
@@ -123,8 +165,8 @@ impl PrivateEvent {
     /// [`PrivateEvent::TradeRaw`] (private feed = own-account fills,
     /// schema not in docs) and routes `"order"` to
     /// [`PrivateEvent::Order`].
-    pub(crate) fn from_envelope(env: Envelope) -> Result<Self, serde_json::Error> {
-        Ok(match env.kind.as_str() {
+    pub(crate) fn from_envelope(env: Envelope) -> Self {
+        match env.kind.as_str() {
             "heartbeat" => PrivateEvent::Heartbeat,
             "err" => match parse_server_error(env.data) {
                 Ok(se) => PrivateEvent::Error(se),
@@ -133,12 +175,19 @@ impl PrivateEvent {
                     data,
                 },
             },
-            "order" => PrivateEvent::Order(Box::new(serde_json::from_value(env.data)?)),
+            "order" => match serde_json::from_value::<private::OrderEvent>(env.data.clone()) {
+                Ok(o) => PrivateEvent::Order(Box::new(o)),
+                Err(e) => PrivateEvent::DecodeFailed {
+                    kind: env.kind,
+                    data: env.data,
+                    error: e.to_string(),
+                },
+            },
             "trade" => PrivateEvent::TradeRaw(env.data),
             _ => PrivateEvent::Unknown {
                 kind: env.kind,
                 data: env.data,
             },
-        })
+        }
     }
 }

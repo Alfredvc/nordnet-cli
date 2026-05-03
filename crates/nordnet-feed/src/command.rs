@@ -22,11 +22,10 @@ use serde::{Serialize, Serializer};
 /// always the literal string `"NEXTAPI"` (the public docs page omits
 /// the field but the reference impl always sends it).
 ///
-/// Not in the prelude (`crate::*`) — consumers call
-/// `client.login(session_key)` rather than constructing this directly.
-/// Kept `pub` for the wire-byte integration tests in `tests/`.
+/// Internal — consumers call `client.login(&session)` rather than
+/// constructing this directly.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LoginCommand<'a> {
+pub(crate) struct LoginCommand<'a> {
     pub session_key: &'a str,
 }
 
@@ -144,8 +143,6 @@ impl Serialize for SubscribeArgs {
 /// order is preserved: `cmd` first, then `args`. Without the `preserve_order`
 /// feature, both `serde_json::Map` and `json!` use `BTreeMap` internally and
 /// sort keys alphabetically, which would emit `args` before `cmd`.
-// Used by encode_subscribe_frame, which is called from the client layer (phase 2.3).
-#[allow(dead_code)]
 struct SubscribeFrame<'a> {
     cmd_name: &'static str,
     args: &'a SubscribeArgs,
@@ -164,8 +161,6 @@ impl Serialize for SubscribeFrame<'_> {
 ///
 /// `cmd_name` is `"subscribe"` or `"unsubscribe"` — the same args
 /// shape works for both calls.
-// Called from the client layer (phase 2.3).
-#[allow(dead_code)]
 pub(crate) fn encode_subscribe_frame(
     cmd_name: &'static str,
     args: &SubscribeArgs,
@@ -174,8 +169,6 @@ pub(crate) fn encode_subscribe_frame(
 }
 
 /// Encodes a login frame.
-// Called from the client layer (phase 2.3).
-#[allow(dead_code)]
 pub(crate) fn encode_login_frame(cmd: &LoginCommand<'_>) -> serde_json::Result<String> {
     serde_json::to_string(cmd)
 }

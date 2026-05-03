@@ -1,10 +1,16 @@
 //! Public market-data feed client.
 
+use std::time::Duration;
+
+use tokio::time::timeout;
+
 use crate::command::{encode_login_frame, encode_subscribe_frame, LoginCommand, SubscribeArgs};
+use crate::config::FeedConfig;
 use crate::error::{redact_line, FeedError};
 use crate::event::{Envelope, PublicEvent};
 use crate::transport::{self, Inner};
 
+use nordnet_model::auth::Session;
 use nordnet_model::models::login::Feed;
 
 /// Public market-data feed client. One connection per session, max.
@@ -15,25 +21,67 @@ use nordnet_model::models::login::Feed;
 ///
 /// # Termination semantics
 ///
-/// Any error returned by [`Self::recv`], [`Self::send`-style methods],
-/// or a clean EOF from `recv()` puts the client in a terminal state.
-/// The transport is dropped and every subsequent call returns
-/// [`FeedError::Closed`]. Callers must construct a new client (and
-/// re-login) to continue.
+/// Any error returned by [`Self::recv`], [`Self::login`],
+/// [`Self::subscribe`], or [`Self::unsubscribe`], or a clean EOF from
+/// `recv()`, puts the client in a terminal state. The transport is
+/// dropped and every subsequent call returns [`FeedError::Closed`].
+/// Callers must construct a new client (and re-login) to continue.
+///
+/// Per-frame payload type mismatches do NOT terminate — they surface
+/// as [`PublicEvent::DecodeFailed`] events and the connection stays
+/// open for the next frame.
+///
+/// # Example
+///
+/// ```no_run
+/// use nordnet_feed::{PublicEvent, PublicFeedClient, MarketDataKind, SubscribeArgs};
+/// use nordnet_model::auth::Session;
+/// use nordnet_model::models::login::Feed;
+///
+/// # async fn run(feed: Feed, session: Session) -> Result<(), nordnet_feed::FeedError> {
+/// let mut client = PublicFeedClient::connect(&feed).await?;
+/// client.login(&session).await?;
+///
+/// // Drain pre-subscribe events until login is confirmed (or rejected).
+/// loop {
+///     match client.recv().await? {
+///         Some(PublicEvent::Heartbeat) => continue,
+///         Some(PublicEvent::Error(e)) => return Err(nordnet_feed::FeedError::Io(
+///             std::io::Error::other(e.msg))),
+///         Some(_) | None => break,
+///     }
+/// }
+///
+/// client.subscribe(SubscribeArgs::MarketData {
+///     kind: MarketDataKind::Price,
+///     market: 11,
+///     identifier: "101".into(),
+/// }).await?;
+/// # Ok(()) }
+/// ```
 pub struct PublicFeedClient {
     /// `Some(inner)` while live. Set to `None` on first error / EOF —
     /// every subsequent call returns [`FeedError::Closed`].
     inner: Option<Inner>,
+    heartbeat_timeout: Option<Duration>,
 }
 
 impl PublicFeedClient {
-    /// Connect to `feed.hostname:feed.port`. Performs a TLS handshake
-    /// iff `feed.encrypted == true` (per design Decision §3 — honors
-    /// the structured wire field instead of the Python reference impl's
-    /// `port == 443` heuristic).
+    /// Connect using [`FeedConfig::default`] tunables.
     pub async fn connect(feed: &Feed) -> Result<Self, FeedError> {
+        Self::connect_with(feed, &FeedConfig::default()).await
+    }
+
+    /// Connect with explicit tunables.
+    ///
+    /// `config.connect_timeout` bounds combined TCP + TLS handshake
+    /// time. `config.heartbeat_timeout` is applied to every subsequent
+    /// [`Self::recv`] call.
+    pub async fn connect_with(feed: &Feed, config: &FeedConfig) -> Result<Self, FeedError> {
+        let inner = transport::connect(feed, config.connect_timeout).await?;
         Ok(Self {
-            inner: Some(transport::connect(feed).await?),
+            inner: Some(inner),
+            heartbeat_timeout: config.heartbeat_timeout,
         })
     }
 
@@ -43,10 +91,12 @@ impl PublicFeedClient {
     ///
     /// To detect login failure deterministically, drain `recv()` until
     /// you see either `Error` or a non-`Heartbeat` event before calling
-    /// [`Self::subscribe`] — see the spec §"Login command" for the
-    /// recommended pattern.
-    pub async fn login(&mut self, session_key: &str) -> Result<(), FeedError> {
-        let frame = encode_login_frame(&LoginCommand { session_key }).map_err(FeedError::Encode)?;
+    /// [`Self::subscribe`] — see the type-level example.
+    pub async fn login(&mut self, session: &Session) -> Result<(), FeedError> {
+        let frame = encode_login_frame(&LoginCommand {
+            session_key: &session.session_key,
+        })
+        .map_err(FeedError::Encode)?;
         self.send_line(frame).await
     }
 
@@ -72,14 +122,19 @@ impl PublicFeedClient {
     /// Returns `Ok(None)` on clean EOF (peer closed cleanly between
     /// frames). Returns `Err(FeedError::Closed)` if the peer hung up
     /// via abrupt RST mid-frame. Returns `Err(FeedError::Decode { .. })`
-    /// if the peer sent a clean FIN with a partial frame buffered (the
-    /// half-frame is delivered as a line and fails JSON parsing — the
-    /// truncated line is attached for diagnostics).
+    /// if the envelope JSON is malformed (terminal — fundamentally
+    /// broken stream). Returns `Err(FeedError::HeartbeatTimeout(..))`
+    /// if no frame arrived within the configured budget.
     ///
-    /// All error / EOF outcomes are terminal: the transport is dropped
-    /// and every subsequent call returns [`FeedError::Closed`]. Stray
-    /// blank lines on the wire (NDJSON keepalive convention) are
-    /// skipped silently rather than producing a `Decode` error.
+    /// Per-frame payload type mismatches surface as
+    /// [`PublicEvent::DecodeFailed`] — non-terminal — so a single bad
+    /// payload does not kill the connection.
+    ///
+    /// All `Err(..)` and `Ok(None)` outcomes are terminal: the
+    /// transport is dropped and every subsequent call returns
+    /// [`FeedError::Closed`]. Stray blank lines on the wire (NDJSON
+    /// keepalive convention) are skipped silently rather than producing
+    /// a `Decode` error.
     pub async fn recv(&mut self) -> Result<Option<PublicEvent>, FeedError> {
         let line = match self.recv_line().await? {
             None => return Ok(None),
@@ -95,28 +150,28 @@ impl PublicFeedClient {
                 });
             }
         };
-        match PublicEvent::from_envelope(env) {
-            Ok(e) => Ok(Some(e)),
-            Err(source) => {
-                self.inner = None;
-                Err(FeedError::Decode {
-                    source,
-                    line: redact_line(line),
-                })
-            }
-        }
+        Ok(Some(PublicEvent::from_envelope(env)))
     }
 
     /// Read the next non-empty line from the wire. Empty lines (stray
     /// `\n\n` keepalives, peer-flush artifacts) are skipped per NDJSON
-    /// convention. Sets `self.inner = None` on EOF or transport error.
+    /// convention. Sets `self.inner = None` on EOF, transport error, or
+    /// heartbeat-watchdog timeout.
     async fn recv_line(&mut self) -> Result<Option<String>, FeedError> {
-        if self.inner.is_none() {
-            return Err(FeedError::Closed);
-        }
+        let watchdog = self.heartbeat_timeout;
         loop {
-            let inner = self.inner.as_mut().expect("checked Some above");
-            match inner.next_line().await {
+            let inner = self.inner.as_mut().ok_or(FeedError::Closed)?;
+            let read = match watchdog {
+                Some(t) => match timeout(t, inner.next_line()).await {
+                    Ok(r) => r,
+                    Err(_) => {
+                        self.inner = None;
+                        return Err(FeedError::HeartbeatTimeout(t));
+                    }
+                },
+                None => inner.next_line().await,
+            };
+            match read {
                 None => {
                     self.inner = None;
                     return Ok(None);

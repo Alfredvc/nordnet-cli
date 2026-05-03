@@ -7,7 +7,10 @@ rust-version.workspace = true
 
 [dependencies]
 nordnet-model = { path = "../nordnet-model" }
-tokio = { workspace = true, features = ["io-util", "net"] }
+# Self-contained feature set — does not rely on workspace-level union from
+# sibling crates. `time` is required by the heartbeat watchdog and `macros`
+# by `#[tokio::test]` in the integration tests.
+tokio = { workspace = true, features = ["io-util", "macros", "net", "time"] }
 tokio-util = { workspace = true }
 tokio-rustls = { workspace = true }
 rustls = { workspace = true }
@@ -17,6 +20,6 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 rust_decimal = { workspace = true }
 thiserror = { workspace = true }
-
-[dev-dependencies]
-rust_decimal = { workspace = true }
+# TCP keepalive on `tokio::net::TcpStream`. `set_nodelay` is on tokio
+# directly; keepalive needs `socket2::SockRef::from(&tcp)`.
+socket2 = "0.6.3"

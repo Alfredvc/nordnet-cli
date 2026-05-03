@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/nordnet-api",
     "crates/nordnet-cli",
+    "crates/nordnet-feed",
     "crates/nordnet-model",
     "xtask",
 ]
@@ -18,6 +19,12 @@ rust-version = "1.80"
 # HTTP / async
 reqwest = { version = "0.13.3", default-features = false, features = ["json", "rustls", "http2"] }
 tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread", "time"] }
+tokio-rustls = "0.26"
+tokio-util = { version = "0.7", features = ["codec"] }
+
+# TLS
+rustls = "0.23"
+webpki-roots = "1"
 
 # Serde stack
 serde = { version = "1.0.228", features = ["derive"] }

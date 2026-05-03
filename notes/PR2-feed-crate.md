@@ -106,3 +106,107 @@ regression guard. All 8 tests pass.
 - `cargo clippy --workspace --all-targets -- -D warnings` — green
 - `cargo test --workspace` — 255 tests pass (247 pre-existing + 8 new wire-byte
   inline tests in command.rs)
+
+---
+
+## Phase 2.2 Agent A — public.rs
+
+**Date:** 2026-05-02
+
+### What landed
+
+Implemented `crates/nordnet-feed/src/public.rs` with six public structs:
+
+- `Price` — full price tick; all fields except `i` (String) and `m` (i64) are
+  `Option<T>` with `#[serde(default)]` for delta compatibility. Decimal for all
+  prices and volumes. Derives `Default` so consumers can build a "starting state"
+  they then merge into.
+- `Depth` — order book depth tick; `i`, `m`, `tick_timestamp` required; levels 1–5
+  (`bid{n}`, `ask{n}` as Decimal; `bid_volume{n}`, `ask_volume{n}` as Decimal;
+  `bid_orders{n}`, `ask_orders{n}` as i64 counts). Derives `Default`.
+- `Trade` — market trade tick; `i`, `m`, `trade_timestamp`, `price`, `volume`
+  required; `broker_buying`, `broker_selling`, `trade_id`, `trade_type` optional.
+- `TradingStatus` — `i`, `m`, `tick_timestamp`, `status` required; `source_status`,
+  `halted`, `orderbook_status` optional.
+- `Indicator` — `m` is `String` (NOT i64 — per spec Decision §9); `i`, `tick_timestamp`
+  required; `last`, `high`, `low`, `close` (Decimal), `delayed` (i64) optional.
+- `News` — wire `type` field renamed to Rust `kind` via `#[serde(rename = "type")]`;
+  `instruments: Option<Vec<i64>>` with `#[serde(default)]`.
+
+### Binding constraints honored
+
+- No `#[serde(deny_unknown_fields)]` on any struct (forward-compat rule).
+- Every optional field has `#[serde(default)]`.
+- `Decimal` for all prices/volumes; `i64` for counts, ids, timestamps. No f64.
+- `Indicator.m` is `String`, not the `MarketId` newtype.
+- `Price` and `Depth` derive `Default`; other structs do not (they have required fields).
+- No `Hash` derives (Decimal is not Hash by default; unneeded).
+- `lib.rs` unchanged — `pub mod public;` was already present from phase 2.0 scaffold.
+
+### Gate results
+
+- `cargo build --workspace` — green
+- `cargo fmt --check` — green
+- `cargo clippy --workspace --all-targets -- -D warnings` — green
+- `cargo test --workspace` — 255 tests pass (unchanged; phase 2.4 owns event tests)
+
+---
+
+## Phase 2.2 Agent B — private.rs
+
+**Date:** 2026-05-02
+
+### What landed
+
+Implemented `crates/nordnet-feed/src/private.rs` with `OrderEvent` and all nested types:
+
+**Structs:**
+- `OrderEvent` — all required fields from the spec table; `reference: Option<String>` with `#[serde(default)]`.
+- `Tradable` — `market_id: i64`, `identifier: String`.
+- `PriceWithCurrency` — `value: Decimal`, `currency: String`.
+- `Validity` — `kind: ValidityKind` (wire `type` renamed via `#[serde(rename = "type")]`), `valid_until: i64`.
+- `ActivationCondition` — `kind: ActivationConditionKind` (wire `type` renamed via `#[serde(rename = "type")]`).
+
+**Typed enums (Known + Unknown split — Decision §10):** Seven enums total.
+
+| Outer enum | Inner `Known*` enum | Known variants (HTML source + seed) |
+|------------|--------------------|------------------------------------|
+| `Side` | `KnownSide` | BUY, SELL |
+| `VolumeCondition` | `KnownVolumeCondition` | NORMAL, ALL_OR_NOTHING, AON, FOK, IOC |
+| `ValidityKind` | `KnownValidityKind` | DAY, UNTIL_DATE, EXTENDED_HOURS, IMMEDIATE, GTC, GTD, IOC |
+| `ActivationConditionKind` | `KnownActivationConditionKind` | NONE, MANUAL, STOP_ACTPRICE_PERC, STOP_ACTPRICE |
+| `OrderState` | `KnownOrderState` | DELETED, LOCAL, ON_MARKET, LOCKED, ACTIVE, FILLED, CANCELLED |
+| `ActionState` | `KnownActionState` | DEL_FAIL, DEL_PEND, DEL_CONF, DEL_PUSH, INS_FAIL, INS_PEND, INS_CONF, INS_STOP, MOD_FAIL, MOD_PEND, MOD_PUSH, INS_WAIT, MOD_WAIT, DEL_WAIT, MOD_CONF, ACKED |
+| `OrderType` | `KnownOrderType` | FAK, FOK, NORMAL, LIMIT, STOP_LIMIT, STOP_TRAILING, OCO, MARKET, STOP_LOSS |
+
+### Extra variants found beyond the spec seed list
+
+From `docs-source/nordnet-api-v2.html` (source of truth):
+
+| Enum | Extra variants from HTML (not in seed) |
+|------|----------------------------------------|
+| `VolumeCondition` | `ALL_OR_NOTHING` |
+| `ValidityKind` | `UNTIL_DATE`, `EXTENDED_HOURS`, `IMMEDIATE` |
+| `ActivationConditionKind` | `MANUAL`, `STOP_ACTPRICE_PERC`, `STOP_ACTPRICE` |
+| `OrderState` | `DELETED`, `ON_MARKET`, `LOCKED` |
+| `ActionState` | `DEL_FAIL`, `DEL_CONF`, `DEL_PUSH`, `INS_FAIL`, `INS_CONF`, `INS_STOP`, `MOD_FAIL`, `MOD_PUSH`, `INS_WAIT`, `MOD_WAIT`, `DEL_WAIT`, `MOD_CONF` |
+| `OrderType` | `FAK`, `NORMAL`, `STOP_TRAILING`, `OCO` |
+
+Variants only in the seed (not in HTML REST docs, feed-wire only): `AON`, `FOK`, `IOC` (VolumeCondition), `GTC`, `GTD` (ValidityKind), `ACTIVE`, `FILLED`, `CANCELLED` (OrderState), `ACKED` (ActionState), `MARKET`, `STOP_LOSS` (OrderType).
+
+### Binding constraints honored
+
+- No `#[serde(deny_unknown_fields)]` on any struct (forward-compat rule).
+- `#[serde(default)]` on optional field (`reference`).
+- `Decimal` for `volume` and `price.value`; `i64` for `order_id`, `accno`, `accid`, `modified`, `valid_until`, `market_id`. No f64.
+- No `Hash` derives (Decimal is not Hash).
+- All derives include `Eq` (Decimal implements Eq; confirmed via crates.io).
+- `lib.rs` unchanged — `pub mod private;` was already present from phase 2.0 scaffold.
+- Local types only — no imports from `nordnet_model`.
+
+### Gate results
+
+- `cargo build --workspace` — green
+- `cargo fmt --check` — green
+- `cargo clippy --workspace --all-targets -- -D warnings` — green
+- `cargo test --workspace` — 255 tests pass (unchanged; phase 2.4 owns event tests)

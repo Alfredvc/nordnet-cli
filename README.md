@@ -1,11 +1,30 @@
-# Nordnet CLI
+<h1 align="center">Nordnet CLI</h1>
 
-[github.com/Alfredvc/nordnet-cli](https://github.com/Alfredvc/nordnet-cli)
+<p align="center">
+  <img src="docs/assets/readme_banner.jpg" alt="Nordnet CLI banner" width="800" />
+</p>
 
-[![CI](https://img.shields.io/github/actions/workflow/status/Alfredvc/nordnet-cli/ci.yml?branch=main&label=CI)](https://github.com/Alfredvc/nordnet-cli/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/Alfredvc/nordnet-cli)](https://github.com/Alfredvc/nordnet-cli/releases)
-[![crates.io](https://img.shields.io/crates/v/nordnet-cli.svg)](https://crates.io/crates/nordnet-cli)
-[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE-MIT)
+<p align="center">
+  <a href="https://github.com/Alfredvc/nordnet-cli/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Alfredvc/nordnet-cli/ci.yml?branch=main&label=CI" alt="CI" /></a>
+  <a href="https://github.com/Alfredvc/nordnet-cli/releases"><img src="https://img.shields.io/github/v/release/Alfredvc/nordnet-cli" alt="Release" /></a>
+  <a href="https://crates.io/crates/nordnet-cli"><img src="https://img.shields.io/crates/v/nordnet-cli.svg" alt="crates.io" /></a>
+  <a href="LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue" alt="License: MIT OR Apache-2.0" /></a>
+</p>
+
+> [!WARNING]
+> **A Nordnet API key grants FULL access to your account.** There is no
+> scoping, no read-only mode, no per-action authorization. Anyone — or
+> any process — holding the key can place, modify, and cancel orders,
+> read every position and balance, and drain the account. This CLI does
+> nothing to contain that authority: it loads the key from disk or env
+> and uses it as-is.
+>
+> **Use this software entirely at your own risk.** You alone are
+> responsible for any trades, losses, or unauthorized access that
+> result from running it. The authors provide no warranty and accept
+> no liability — see [LICENSE-MIT](LICENSE-MIT) /
+> [LICENSE-APACHE](LICENSE-APACHE). Read [SECURITY.md](SECURITY.md)
+> before installing.
 
 `nordnet` — an agent-friendly command-line frontend for the Nordnet
 External API v2.

@@ -15,6 +15,7 @@ license = "MIT OR Apache-2.0"
 authors = ["Alfredo V. Clemente <aemente91@gmail.com>"]
 rust-version = "1.80"
 repository = "https://github.com/Alfredvc/nordnet-cli"
+homepage = "https://github.com/Alfredvc/nordnet-cli"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

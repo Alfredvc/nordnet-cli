@@ -2,6 +2,11 @@
 
 [github.com/Alfredvc/nordnet-cli](https://github.com/Alfredvc/nordnet-cli)
 
+[![CI](https://img.shields.io/github/actions/workflow/status/Alfredvc/nordnet-cli/ci.yml?branch=main&label=CI)](https://github.com/Alfredvc/nordnet-cli/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Alfredvc/nordnet-cli)](https://github.com/Alfredvc/nordnet-cli/releases)
+[![crates.io](https://img.shields.io/crates/v/nordnet-cli.svg)](https://crates.io/crates/nordnet-cli)
+[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE-MIT)
+
 `nordnet` — an agent-friendly command-line frontend for the Nordnet
 External API v2.
 
@@ -33,20 +38,28 @@ Prerequisites:
 - An OpenSSH-format Ed25519 private key registered with Nordnet
   (`ssh-keygen -t ed25519 -f ~/.ssh/nordnet_ed25519`).
 
-Build and install the binary into `~/.cargo/bin`:
+Prebuilt binary (recommended):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Alfredvc/nordnet-cli/main/install.sh | sh
+```
+
+Downloads the latest release tarball into `~/.local/bin`. Override with
+`NORDNET_INSTALL_DIR=/some/dir` or pin a version with
+`NORDNET_VERSION=v0.1.0`.
+
+From source via cargo:
 
 ```bash
 cargo install --path crates/nordnet-cli
 ```
 
-Or build it without installing:
+Or build without installing:
 
 ```bash
 cargo build --release
 ./target/release/nordnet --help
 ```
-
-There is no prebuilt-binary release channel yet.
 
 ## Quick start
 

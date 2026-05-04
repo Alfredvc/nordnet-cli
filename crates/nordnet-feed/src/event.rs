@@ -88,10 +88,7 @@ pub enum PublicEvent {
     /// Unknown wire `type`. Forward-compat: future event kinds — and
     /// malformed `err` frames missing the required `msg` field — land
     /// here without erroring out.
-    Unknown {
-        kind: String,
-        data: Value,
-    },
+    Unknown { kind: String, data: Value },
     /// A known event `type` whose payload failed to deserialize into the
     /// typed struct. Carries the raw payload plus the rendered serde
     /// error so consumers can log and continue.

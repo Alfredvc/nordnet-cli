@@ -19,6 +19,20 @@ fn fake_session() -> Session {
     }
 }
 
+/// Drain pending client writes before the server task ends. Without
+/// this, the kernel sends RST (not FIN) when client data is still in
+/// the recv buffer at close, and the client loses the buffered
+/// response frame.
+async fn drain_until_eof(sock: &mut tokio::net::TcpStream) {
+    let mut buf = [0u8; 4096];
+    loop {
+        match tokio::time::timeout(Duration::from_millis(100), sock.read(&mut buf)).await {
+            Ok(Ok(0)) | Ok(Err(_)) | Err(_) => break,
+            Ok(Ok(_)) => continue,
+        }
+    }
+}
+
 /// Bind a loopback TCP listener and return (listener, plain Feed).
 async fn loopback() -> (TcpListener, Feed) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -38,13 +52,26 @@ async fn subscribe_then_recv_price_tick() {
     let server = tokio::spawn(async move {
         let (mut sock, _addr) = listener.accept().await.unwrap();
         let mut buf = [0u8; 4096];
-        let n = sock.read(&mut buf).await.unwrap();
-        let written = std::str::from_utf8(&buf[..n]).unwrap();
+        let mut accum = Vec::new();
+        // Multiple client writes can arrive in one or many reads — accumulate
+        // until both frames are visible (or 1s budget).
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(1);
+        while !std::str::from_utf8(&accum)
+            .unwrap_or("")
+            .contains(r#""cmd":"subscribe""#)
+        {
+            match tokio::time::timeout_at(deadline, sock.read(&mut buf)).await {
+                Ok(Ok(0)) | Ok(Err(_)) | Err(_) => break,
+                Ok(Ok(n)) => accum.extend_from_slice(&buf[..n]),
+            }
+        }
+        let written = std::str::from_utf8(&accum).unwrap();
         assert!(written.contains(r#""cmd":"login""#));
         assert!(written.contains(r#""cmd":"subscribe""#));
         let tick = r#"{"type":"price","data":{"i":"101","m":11,"bid":132.5,"ask":132.55}}"#;
         sock.write_all(tick.as_bytes()).await.unwrap();
         sock.write_all(b"\n").await.unwrap();
+        drain_until_eof(&mut sock).await;
     });
 
     let mut client = PublicFeedClient::connect(&feed).await.unwrap();
@@ -150,6 +177,7 @@ async fn server_err_surfaces_as_event_not_result_err() {
             r#"{"type":"err","data":{"msg":"Not authorized.","cmd":{"cmd":"subscribe"}}}"#;
         sock.write_all(err_frame.as_bytes()).await.unwrap();
         sock.write_all(b"\n").await.unwrap();
+        drain_until_eof(&mut sock).await;
     });
     let mut client = PublicFeedClient::connect(&feed).await.unwrap();
     client.login(&fake_session()).await.unwrap();
@@ -176,6 +204,7 @@ async fn login_error_then_close_returns_none_after_err() {
             .await
             .unwrap();
         sock.write_all(b"\n").await.unwrap();
+        drain_until_eof(&mut sock).await;
     });
     let mut client = PublicFeedClient::connect(&feed).await.unwrap();
     client.login(&fake_session()).await.unwrap();
@@ -508,6 +537,7 @@ async fn private_feed_order_event_round_trip() {
         let order = r#"{"type":"order","data":{"volume":111.0,"price":{"value":132.55,"currency":"SEK"},"volume_condition":"NORMAL","order_id":202178767,"reference":"ABC132","tradable":{"market_id":11,"identifier":"101"},"validity":{"type":"DAY","valid_until":1613061300000},"accno":123123,"accid":1,"side":"BUY","modified":1612955053717,"activation_condition":{"type":"NONE"},"order_state":"LOCAL","action_state":"INS_PEND","order_type":"LIMIT"}}"#;
         sock.write_all(order.as_bytes()).await.unwrap();
         sock.write_all(b"\n").await.unwrap();
+        drain_until_eof(&mut sock).await;
     });
     let mut client = PrivateFeedClient::connect(&feed).await.unwrap();
     client.login(&fake_session()).await.unwrap();

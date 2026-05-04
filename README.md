@@ -133,6 +133,26 @@ nordnet accounts positions 12345 | jq '.[] | select(.qty > 0)'
 Errors print a structured JSON document to stderr and the binary exits
 non-zero.
 
+## Security
+
+> **The binary provides no agent containment.** Any process running as
+> your UNIX user — including an AI agent you have invoked — can read
+> `credentials.toml`, the SSH private key, and `session.toml`, and can
+> call every write endpoint (`orders place`, `orders modify`,
+> `orders activate`, `orders cancel`) without further authorization.
+> Nothing is encrypted at rest, write calls are not gated by
+> per-task tokens, and there is no audit log.
+
+Run the binary only inside an isolation boundary you trust (a dedicated
+UNIX user, container, VM, or hardware-isolated agent host). Set
+`chmod 600` on `credentials.toml` and the SSH key yourself — the CLI
+does not do it for you. `nordnet auth logout` after each session.
+
+See [SECURITY.md](SECURITY.md) for the full threat model, file
+inventory, and recommended mitigations. The hardened-mode design that
+was considered and deferred is preserved at
+[`docs/specs/2026-05-03-security-layer-design.md`](docs/specs/2026-05-03-security-layer-design.md).
+
 ## Command surface
 
 | Command                        | API path                                              |
